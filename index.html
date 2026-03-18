@@ -1,10 +1,145 @@
 <!DOCTYPE html>
-<html>
+<html lang="es">
 <head>
-    <title>Mi Nueva Página</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NEURO-CORE | Red de Aprendizaje</title>
+    
+    <!-- Librería de Grafos Corregida -->
+    <script type="text/javascript" src="https://unpkg.com"></script>
+    <link href="https://fonts.googleapis.com" rel="stylesheet">
+    
+    <style>
+        :root {
+            --bg-color: #020205;
+            --neon-cyan: #00f3ff;
+            --neon-purple: #bc00ff;
+            --text-gray: #888;
+        }
+
+        body, html {
+            margin: 0; padding: 0; width: 100%; height: 100%;
+            background-color: var(--bg-color);
+            color: var(--neon-cyan);
+            font-family: 'Space Mono', monospace;
+            overflow: hidden;
+        }
+
+        /* Cuadrícula Cyberpunk */
+        body::before {
+            content: ""; position: absolute; width: 100%; height: 100%;
+            background-image: 
+                linear-gradient(rgba(0, 243, 255, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 243, 255, 0.03) 1px, transparent 1px);
+            background-size: 40px 40px; pointer-events: none;
+        }
+
+        #header {
+            position: absolute; top: 25px; left: 25px; z-index: 10;
+            border-left: 3px solid var(--neon-purple); padding-left: 15px;
+        }
+
+        h1 { margin: 0; font-size: 1.5rem; letter-spacing: 3px; text-shadow: 0 0 15px var(--neon-cyan); }
+
+        #mynetwork { width: 100vw; height: 100vh; outline: none; }
+
+        #info-panel {
+            position: absolute; right: 20px; bottom: 20px; width: 300px;
+            background: rgba(5, 5, 10, 0.9); border: 1px solid var(--neon-cyan);
+            padding: 20px; display: none; backdrop-filter: blur(10px);
+            box-shadow: 0 0 20px rgba(0, 243, 255, 0.2);
+            z-index: 100;
+        }
+
+        .code-box {
+            background: #000; color: #0f0; padding: 10px;
+            font-size: 0.8rem; border: 1px dashed var(--neon-purple);
+            margin-top: 10px; white-space: pre-wrap; font-family: monospace;
+        }
+
+        .scanner {
+            position: absolute; width: 100%; height: 2px;
+            background: rgba(0, 243, 255, 0.5); box-shadow: 0 0 15px var(--neon-cyan);
+            animation: scan 4s linear infinite; pointer-events: none;
+        }
+
+        @keyframes scan { 0% { top: 0%; } 100% { top: 100%; } }
+    </style>
 </head>
 <body>
-    <h1>¡Hola! Mi dominio .com ya funciona en GitHub</h1>
-    <p>Esta es una prueba de despliegue.</p>
+
+    <div class="scanner"></div>
+    
+    <div id="header">
+        <h1>NEURO-NET_SYS</h1>
+        <div style="font-size: 0.7rem; color: var(--text-gray);">STATUS: ONLINE | DOMAIN: .COM</div>
+    </div>
+
+    <div id="mynetwork"></div>
+
+    <div id="info-panel">
+        <h3 id="node-title" style="color: var(--neon-purple); margin: 0 0 10px 0;"></h3>
+        <p id="node-desc" style="font-size: 0.8rem; color: #fff;"></p>
+        <div class="code-box" id="node-code"></div>
+        <button onclick="document.getElementById('info-panel').style.display='none'" style="background:none; border:1px solid #444; color:#444; cursor:pointer; margin-top:10px; width:100%;">CERRAR</button>
+    </div>
+
+    <script type="text/javascript">
+        var nodes = new vis.DataSet([
+            { id: 1, label: 'MUNDO\nDIGITAL', shape: 'diamond', size: 50, color: {background: '#000', border: '#bc00ff'}, font: {color: '#fff', size: 20} },
+            { id: 2, label: 'PYTHON', group: 'lang' },
+            { id: 3, label: 'JAVASCRIPT', group: 'lang' },
+            { id: 4, label: 'C++', group: 'lang' },
+            { id: 5, label: 'JAVA', group: 'lang' },
+            { id: 21, label: 'Variables', group: 'concept' },
+            { id: 32, label: 'Promesas', group: 'concept' },
+            { id: 41, label: 'Punteros', group: 'concept' },
+            { id: 51, label: 'Clases', group: 'concept' }
+        ]);
+
+        var edges = new vis.DataSet([
+            { from: 1, to: 2 }, { from: 1, to: 3 }, { from: 1, to: 4 }, { from: 1, to: 5 },
+            { from: 2, to: 21 }, { from: 3, to: 32 }, { from: 4, to: 41 }, { from: 5, to: 51 }
+        ]);
+
+        var container = document.getElementById('mynetwork');
+        var data = { nodes: nodes, edges: edges };
+        var options = {
+            nodes: {
+                font: { face: 'Space Mono', color: '#00f3ff' },
+                shadow: true
+            },
+            groups: {
+                lang: { shape: 'dot', size: 25, color: {background: '#000', border: '#00f3ff'} },
+                concept: { shape: 'dot', size: 10, color: {background: '#000', border: '#bc00ff'}, font: {size: 12} }
+            },
+            physics: {
+                forceAtlas2Based: { gravitationalConstant: -100, springLength: 150 },
+                solver: 'forceAtlas2Based'
+            }
+        };
+
+        var network = new vis.Network(container, data, options);
+
+        const nodeInfo = {
+            2: { t: 'PYTHON', d: 'Ideal para IA y Ciencia de Datos.', c: 'print("Hello World")' },
+            3: { t: 'JAVASCRIPT', d: 'El motor de la web interactiva.', c: 'console.log("Active");' },
+            4: { t: 'C++', d: 'Máximo rendimiento y control.', c: 'cout << "Hardware Access";' },
+            5: { t: 'JAVA', d: 'Escalabilidad empresarial.', c: 'System.out.println("Java");' }
+        };
+
+        network.on("click", function (params) {
+            if (params.nodes.length > 0) {
+                const id = params.nodes[0];
+                if (nodeInfo[id]) {
+                    document.getElementById('info-panel').style.display = 'block';
+                    document.getElementById('node-title').innerText = nodeInfo[id].t;
+                    document.getElementById('node-desc').innerText = nodeInfo[id].d;
+                    document.getElementById('node-code').innerText = nodeInfo[id].c;
+                }
+            }
+        });
+    </script>
 </body>
 </html>
+
