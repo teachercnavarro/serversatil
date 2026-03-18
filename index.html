@@ -84,7 +84,8 @@
         <button onclick="document.getElementById('info-panel').style.display='none'" style="background:none; border:1px solid #444; color:#444; cursor:pointer; margin-top:10px; width:100%;">CERRAR</button>
     </div>
 
-    <script type="text/javascript">
+        <script type="text/javascript">
+        // 1. Definir los Nodos
         var nodes = new vis.DataSet([
             { id: 1, label: 'MUNDO\nDIGITAL', shape: 'diamond', size: 50, color: {background: '#000', border: '#bc00ff'}, font: {color: '#fff', size: 20} },
             { id: 2, label: 'PYTHON', group: 'lang' },
@@ -97,6 +98,7 @@
             { id: 51, label: 'Clases', group: 'concept' }
         ]);
 
+        // 2. Definir las Conexiones
         var edges = new vis.DataSet([
             { from: 1, to: 2 }, { from: 1, to: 3 }, { from: 1, to: 4 }, { from: 1, to: 5 },
             { from: 2, to: 21 }, { from: 3, to: 32 }, { from: 4, to: 41 }, { from: 5, to: 51 }
@@ -104,6 +106,7 @@
 
         var container = document.getElementById('mynetwork');
         var data = { nodes: nodes, edges: edges };
+        
         var options = {
             nodes: {
                 font: { face: 'Space Mono', color: '#00f3ff' },
@@ -114,32 +117,42 @@
                 concept: { shape: 'dot', size: 10, color: {background: '#000', border: '#bc00ff'}, font: {size: 12} }
             },
             physics: {
+                enabled: true,
                 forceAtlas2Based: { gravitationalConstant: -100, springLength: 150 },
                 solver: 'forceAtlas2Based'
             }
         };
 
+        // 3. Inicializar la Red
         var network = new vis.Network(container, data, options);
 
+        // 4. Información de los Nodos (Base de Datos)
         const nodeInfo = {
             2: { t: 'PYTHON', d: 'Ideal para IA y Ciencia de Datos.', c: 'print("Hello World")' },
             3: { t: 'JAVASCRIPT', d: 'El motor de la web interactiva.', c: 'console.log("Active");' },
-            4: { t: 'C++', d: 'Máximo rendimiento y control.', c: 'cout << "Hardware Access";' },
+            4: { t: 'C++', d: 'Máximo rendimiento y control.', c: 'std::cout << "Hardware Access";' },
             5: { t: 'JAVA', d: 'Escalabilidad empresarial.', c: 'System.out.println("Java");' }
         };
 
+        // 5. Evento al hacer Click
         network.on("click", function (params) {
             if (params.nodes.length > 0) {
                 const id = params.nodes[0];
+                const panel = document.getElementById('info-panel');
                 if (nodeInfo[id]) {
-                    document.getElementById('info-panel').style.display = 'block';
+                    panel.style.display = 'block';
                     document.getElementById('node-title').innerText = nodeInfo[id].t;
                     document.getElementById('node-desc').innerText = nodeInfo[id].d;
                     document.getElementById('node-code').innerText = nodeInfo[id].c;
+                } else {
+                    panel.style.display = 'none';
                 }
+            } else {
+                document.getElementById('info-panel').style.display = 'none';
             }
         });
     </script>
+
 </body>
 </html>
 
