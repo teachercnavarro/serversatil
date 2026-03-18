@@ -1,114 +1,728 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NEURO-CORE | Red Digital</title>
-    
-    <!-- Librería de Grafos (CDJS estable) -->
-    <script src="https://cdnjs.cloudflare.com"></script>
-    
-    <style>
-        :root { --bg-color: #020205; --neon-cyan: #00f3ff; --neon-purple: #bc00ff; }
-        
-        body, html { 
-            margin: 0; padding: 0; width: 100%; height: 100%; 
-            background-color: var(--bg-color) !important; 
-            color: var(--neon-cyan); 
-            font-family: sans-serif; 
-            overflow: hidden; 
-        }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MUNDO DIGITAL // CYBERNET</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.9/standalone/umd/vis-network.min.js"></script>
+<style>
+  :root {
+    --cyan: #00f3ff;
+    --purple: #bc00ff;
+    --pink: #ff006a;
+    --green: #00ff9d;
+    --yellow: #ffe600;
+    --dark: #020205;
+    --panel-bg: rgba(2, 2, 10, 0.92);
+    --grid-color: rgba(0, 243, 255, 0.04);
+    --border-glow: rgba(0, 243, 255, 0.35);
+  }
 
-        #header { 
-            position: absolute; top: 20px; left: 20px; z-index: 10; 
-            border-left: 3px solid var(--neon-purple); padding-left: 10px; 
-        }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-        #mynetwork { 
-            width: 100vw; height: 100vh; 
-            background-color: var(--bg-color);
-        }
+  html, body {
+    width: 100%; height: 100%;
+    background: var(--dark);
+    font-family: 'Space Mono', monospace;
+    overflow: hidden;
+    color: var(--cyan);
+  }
 
-        #info-panel { 
-            position: absolute; right: 20px; top: 20px; width: 280px; 
-            background: rgba(5, 5, 15, 0.95); border: 1px solid var(--neon-cyan); 
-            padding: 15px; display: none; z-index: 100;
-        }
+  /* ── GRID BACKGROUND ── */
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background-image:
+      linear-gradient(var(--grid-color) 1px, transparent 1px),
+      linear-gradient(90deg, var(--grid-color) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
 
-        .code-box { background: #000; color: #0f0; padding: 10px; font-size: 0.8rem; border: 1px dashed var(--neon-purple); margin-top: 10px; }
-        
-        /* Línea de escaneo */
-        .scanner {
-            position: absolute; width: 100%; height: 2px;
-            background: var(--neon-cyan); box-shadow: 0 0 15px var(--neon-cyan);
-            animation: scan 4s linear infinite; pointer-events: none; z-index: 5;
-        }
-        @keyframes scan { 0% { top: 0%; } 100% { top: 100%; } }
-    </style>
+  /* ── VIGNETTE ── */
+  body::after {
+    content: '';
+    position: fixed; inset: 0;
+    background: radial-gradient(ellipse at center, transparent 40%, rgba(2,2,5,0.85) 100%);
+    pointer-events: none;
+    z-index: 1;
+  }
+
+  /* ── SCAN LINE ── */
+  .scan-line {
+    position: fixed;
+    left: 0; top: -4px;
+    width: 100%; height: 3px;
+    background: linear-gradient(
+      to bottom,
+      transparent 0%,
+      rgba(0,243,255,0.04) 30%,
+      rgba(0,243,255,0.55) 50%,
+      rgba(0,243,255,0.04) 70%,
+      transparent 100%
+    );
+    box-shadow: 0 0 18px 6px rgba(0,243,255,0.25), 0 0 60px 20px rgba(0,243,255,0.06);
+    animation: scan 4s linear infinite;
+    pointer-events: none;
+    z-index: 100;
+  }
+  @keyframes scan {
+    0%   { top: -4px; opacity: 0; }
+    2%   { opacity: 1; }
+    98%  { opacity: 1; }
+    100% { top: 100vh; opacity: 0; }
+  }
+
+  /* ── NOISE OVERLAY ── */
+  .noise {
+    position: fixed; inset: 0;
+    opacity: 0.03;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 2;
+  }
+
+  /* ── GRAPH ── */
+  #mynetwork {
+    position: fixed; inset: 0;
+    width: 100vw; height: 100vh;
+    z-index: 10;
+  }
+
+  /* ── HUD CORNERS ── */
+  .hud-corner {
+    position: fixed;
+    width: 40px; height: 40px;
+    z-index: 50;
+    pointer-events: none;
+  }
+  .hud-corner.tl { top: 16px; left: 16px; border-top: 2px solid var(--cyan); border-left: 2px solid var(--cyan); }
+  .hud-corner.tr { top: 16px; right: 16px; border-top: 2px solid var(--cyan); border-right: 2px solid var(--cyan); }
+  .hud-corner.bl { bottom: 16px; left: 16px; border-bottom: 2px solid var(--cyan); border-left: 2px solid var(--cyan); }
+  .hud-corner.br { bottom: 16px; right: 16px; border-bottom: 2px solid var(--cyan); border-right: 2px solid var(--cyan); }
+
+  /* ── TITLE HUD ── */
+  .hud-title {
+    position: fixed;
+    top: 24px; left: 50%;
+    transform: translateX(-50%);
+    z-index: 50;
+    text-align: center;
+    pointer-events: none;
+  }
+  .hud-title h1 {
+    font-size: clamp(10px, 1.2vw, 15px);
+    letter-spacing: 0.35em;
+    color: var(--cyan);
+    text-shadow: 0 0 12px var(--cyan), 0 0 30px rgba(0,243,255,0.4);
+    text-transform: uppercase;
+    font-weight: 700;
+  }
+  .hud-title .sub {
+    font-size: clamp(8px, 0.7vw, 10px);
+    letter-spacing: 0.5em;
+    color: rgba(0,243,255,0.45);
+    margin-top: 4px;
+  }
+
+  /* ── STATUS BAR ── */
+  .status-bar {
+    position: fixed;
+    bottom: 24px; left: 50%;
+    transform: translateX(-50%);
+    z-index: 50;
+    display: flex; gap: 24px;
+    pointer-events: none;
+  }
+  .status-item {
+    font-size: 9px;
+    letter-spacing: 0.2em;
+    color: rgba(0,243,255,0.35);
+    text-transform: uppercase;
+  }
+  .status-item span { color: var(--cyan); }
+
+  /* ── INFO PANEL ── */
+  #info-panel {
+    display: none;
+    position: fixed;
+    top: 50%;
+    right: 24px;
+    transform: translateY(-50%);
+    width: min(380px, 90vw);
+    max-height: 85vh;
+    overflow-y: auto;
+    background: var(--panel-bg);
+    border: 1px solid var(--border-glow);
+    box-shadow:
+      0 0 0 1px rgba(0,243,255,0.08),
+      0 0 30px rgba(0,243,255,0.12),
+      0 0 80px rgba(188,0,255,0.08),
+      inset 0 0 40px rgba(0,243,255,0.02);
+    z-index: 200;
+    animation: panelIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    scrollbar-width: thin;
+    scrollbar-color: var(--cyan) transparent;
+  }
+  #info-panel::-webkit-scrollbar { width: 3px; }
+  #info-panel::-webkit-scrollbar-thumb { background: var(--cyan); }
+
+  @keyframes panelIn {
+    from { opacity: 0; transform: translateY(-50%) translateX(20px); }
+    to   { opacity: 1; transform: translateY(-50%) translateX(0); }
+  }
+
+  .panel-header {
+    padding: 20px 20px 14px;
+    border-bottom: 1px solid rgba(0,243,255,0.12);
+    position: relative;
+  }
+  .panel-lang-label {
+    font-size: 9px;
+    letter-spacing: 0.4em;
+    color: rgba(0,243,255,0.45);
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+  .panel-title {
+    font-size: clamp(18px, 2.5vw, 26px);
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    line-height: 1;
+  }
+  .panel-version {
+    font-size: 9px;
+    letter-spacing: 0.25em;
+    opacity: 0.4;
+    margin-top: 4px;
+  }
+  .close-btn {
+    position: absolute;
+    top: 16px; right: 16px;
+    background: none;
+    border: 1px solid rgba(0,243,255,0.25);
+    color: var(--cyan);
+    width: 28px; height: 28px;
+    cursor: pointer;
+    font-family: 'Space Mono', monospace;
+    font-size: 14px;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.2s;
+  }
+  .close-btn:hover {
+    background: rgba(0,243,255,0.1);
+    border-color: var(--cyan);
+    box-shadow: 0 0 12px rgba(0,243,255,0.3);
+  }
+
+  .panel-body { padding: 16px 20px; }
+
+  .panel-desc {
+    font-size: 11px;
+    line-height: 1.8;
+    color: rgba(0,243,255,0.65);
+    margin-bottom: 16px;
+    letter-spacing: 0.05em;
+  }
+
+  /* ── STATS ROW ── */
+  .stats-row {
+    display: flex; gap: 8px;
+    margin-bottom: 16px;
+  }
+  .stat-chip {
+    flex: 1;
+    padding: 8px 6px;
+    border: 1px solid rgba(255,255,255,0.07);
+    text-align: center;
+    background: rgba(255,255,255,0.02);
+  }
+  .stat-chip .val {
+    font-size: 13px;
+    font-weight: 700;
+    display: block;
+  }
+  .stat-chip .lbl {
+    font-size: 7px;
+    letter-spacing: 0.2em;
+    opacity: 0.4;
+    margin-top: 2px;
+    display: block;
+    text-transform: uppercase;
+  }
+
+  /* ── SECTION LABEL ── */
+  .section-label {
+    font-size: 8px;
+    letter-spacing: 0.4em;
+    color: rgba(0,243,255,0.35);
+    text-transform: uppercase;
+    margin-bottom: 8px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .section-label::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: rgba(0,243,255,0.1);
+  }
+
+  /* ── CODE BOX ── */
+  .code-box {
+    background: rgba(0,0,0,0.6);
+    border: 1px solid rgba(0,243,255,0.15);
+    border-left: 3px solid;
+    padding: 14px 16px;
+    margin-bottom: 16px;
+    position: relative;
+    overflow: hidden;
+  }
+  .code-box::before {
+    content: '';
+    position: absolute; top: 0; left: 0; right: 0;
+    height: 1px;
+    background: linear-gradient(to right, transparent, rgba(0,243,255,0.3), transparent);
+  }
+  .code-box pre {
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    line-height: 1.7;
+    white-space: pre-wrap;
+    word-break: break-all;
+  }
+  .code-tag {
+    position: absolute;
+    top: 6px; right: 10px;
+    font-size: 7px;
+    letter-spacing: 0.3em;
+    opacity: 0.3;
+    text-transform: uppercase;
+  }
+
+  /* ── CONCEPTS LIST ── */
+  .concepts-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 16px;
+  }
+  .concept-tag {
+    padding: 4px 10px;
+    border: 1px solid;
+    font-size: 9px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    opacity: 0.75;
+    transition: opacity 0.2s;
+    cursor: default;
+  }
+  .concept-tag:hover { opacity: 1; }
+
+  /* ── USE CASES ── */
+  .use-case-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 8px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+    font-size: 10px;
+    color: rgba(0,243,255,0.55);
+    letter-spacing: 0.05em;
+  }
+  .use-case-item::before {
+    content: '▸';
+    flex-shrink: 0;
+    opacity: 0.5;
+  }
+
+  /* ── GLITCH ANIMATION for title ── */
+  @keyframes glitch {
+    0%, 92%, 100% { text-shadow: 0 0 12px var(--cyan), 0 0 30px rgba(0,243,255,0.4); transform: translateX(0); }
+    93% { text-shadow: -2px 0 var(--pink), 2px 0 var(--purple); transform: translateX(-1px); }
+    94% { text-shadow: 2px 0 var(--cyan), -2px 0 var(--pink); transform: translateX(1px); }
+    95% { text-shadow: 0 0 12px var(--cyan); transform: translateX(0); }
+  }
+  .hud-title h1 { animation: glitch 6s infinite; }
+
+  /* ── PULSE RING (click hint) ── */
+  .click-hint {
+    position: fixed;
+    bottom: 50px; left: 50%;
+    transform: translateX(-50%);
+    font-size: 9px;
+    letter-spacing: 0.3em;
+    color: rgba(0,243,255,0.3);
+    text-transform: uppercase;
+    z-index: 50;
+    pointer-events: none;
+    animation: fadeHint 3s ease-in-out 2s forwards;
+  }
+  @keyframes fadeHint {
+    0% { opacity: 1; }
+    100% { opacity: 0; }
+  }
+</style>
 </head>
 <body>
 
-    <div class="scanner"></div>
+<div class="scan-line"></div>
+<div class="noise"></div>
 
-    <div id="header">
-        <h1 style="margin:0; font-size:1.5rem;">NEURO-NET_SYS</h1>
-        <small style="color:#888;">STATUS: ONLINE | CLIC PARA EXPLORAR</small>
+<!-- HUD CORNERS -->
+<div class="hud-corner tl"></div>
+<div class="hud-corner tr"></div>
+<div class="hud-corner bl"></div>
+<div class="hud-corner br"></div>
+
+<!-- TITLE -->
+<div class="hud-title">
+  <h1>⬡ CYBERNET // MUNDO DIGITAL ⬡</h1>
+  <div class="sub">INTERACTIVE PROGRAMMING UNIVERSE v2.0.77</div>
+</div>
+
+<!-- GRAPH -->
+<div id="mynetwork"></div>
+
+<!-- STATUS BAR -->
+<div class="status-bar">
+  <div class="status-item">NODES: <span id="node-count">6</span></div>
+  <div class="status-item">STATUS: <span>ONLINE</span></div>
+  <div class="status-item">NET: <span>CYBERNET-9</span></div>
+  <div class="status-item">SYS: <span id="sys-time">00:00:00</span></div>
+</div>
+
+<div class="click-hint">▸ SELECCIONA UN NODO PARA EXPLORAR ◂</div>
+
+<!-- INFO PANEL -->
+<div id="info-panel">
+  <div class="panel-header">
+    <div class="panel-lang-label">// LENGUAJE DETECTADO</div>
+    <div class="panel-title" id="panel-title">—</div>
+    <div class="panel-version" id="panel-version">—</div>
+    <button class="close-btn" onclick="closePanel()">✕</button>
+  </div>
+  <div class="panel-body">
+    <div class="panel-desc" id="panel-desc">—</div>
+
+    <div class="stats-row" id="panel-stats"></div>
+
+    <div class="section-label">// CONCEPTOS CLAVE</div>
+    <div class="concepts-grid" id="panel-concepts"></div>
+
+    <div class="section-label">// EJEMPLO DE SINTAXIS</div>
+    <div class="code-box" id="code-box-wrap">
+      <div class="code-tag" id="code-tag">SYNTAX</div>
+      <pre id="panel-code">—</pre>
     </div>
 
-    <div id="mynetwork"></div>
+    <div class="section-label">// CASOS DE USO</div>
+    <div id="panel-uses"></div>
+  </div>
+</div>
 
-    <div id="info-panel">
-        <h3 id="node-title" style="margin:0; color:var(--neon-purple);"></h3>
-        <p id="node-desc" style="font-size:0.85rem; color:#fff;"></p>
-        <div class="code-box" id="node-code"></div>
-        <button onclick="document.getElementById('info-panel').style.display='none'" style="margin-top:10px; width:100%; cursor:pointer;">CERRAR</button>
-    </div>
+<script>
+// ── CLOCK ──
+function updateClock() {
+  const now = new Date();
+  document.getElementById('sys-time').textContent =
+    [now.getHours(), now.getMinutes(), now.getSeconds()]
+      .map(n => String(n).padStart(2, '0')).join(':');
+}
+setInterval(updateClock, 1000);
+updateClock();
 
-    <script type="text/javascript">
-        const nodeInfo = {
-            2: { t: 'PYTHON', d: 'Líder en IA y análisis de datos.', c: 'print("Hello Neuro")' },
-            3: { t: 'JAVASCRIPT', d: 'El motor de la web interactiva.', c: 'console.log("Ready");' },
-            4: { t: 'C++', d: 'Control total y alto rendimiento.', c: 'std::cout << "Fast";' },
-            5: { t: 'JAVA', d: 'Estándar en apps empresariales.', c: 'System.out.print("Java");' }
-        };
+// ── DATA ──
+const LANG_DATA = {
+  2: {
+    title: 'PYTHON',
+    version: 'v3.12.x // GEN-AI STANDARD',
+    color: '#00ff9d',
+    desc: 'Lenguaje de alto nivel con sintaxis minimalista. Domina el ecosistema de IA, ciencia de datos y automatización. Interpretado, dinámicamente tipado y multi-paradigma.',
+    stats: [{ val: '#1', lbl: 'TIOBE 2024' }, { val: '35yr', lbl: 'HISTORIA' }, { val: '400K+', lbl: 'PAQUETES' }],
+    concepts: ['Listas', 'Dict/Set', 'Lambda', 'Gen. Expr.', 'Decoradores', 'Async/Await', 'GIL', 'PEP 8', 'Type Hints'],
+    code: `# Decorador + comprensión de lista
+def timer(fn):
+    import time
+    def wrapper(*args, **kw):
+        t = time.perf_counter()
+        result = fn(*args, **kw)
+        print(f"⏱ {fn.__name__}: {time.perf_counter()-t:.4f}s")
+        return result
+    return wrapper
 
-        var nodes = new vis.DataSet([
-            { id: 1, label: 'MUNDO\nDIGITAL', shape: 'diamond', size: 40, color: {background:'#000', border:'#bc00ff'}, font:{color:'#fff'} },
-            { id: 2, label: 'PYTHON', shape: 'dot', size: 20 },
-            { id: 3, label: 'JAVASCRIPT', shape: 'dot', size: 20 },
-            { id: 4, label: 'C++', shape: 'dot', size: 20 },
-            { id: 5, label: 'JAVA', shape: 'dot', size: 20 }
-        ]);
+@timer
+def primes(n: int) -> list[int]:
+    return [x for x in range(2, n+1)
+            if all(x % i != 0 for i in range(2, x))]
 
-        var edges = new vis.DataSet([
-            { from: 1, to: 2 }, { from: 1, to: 3 }, { from: 1, to: 4 }, { from: 1, to: 5 }
-        ]);
+print(primes(50))`,
+    uses: ['Machine Learning & IA', 'Data Science / Pandas', 'Automatización de Scripts', 'APIs con FastAPI / Django', 'Computación Científica'],
+  },
+  3: {
+    title: 'JAVASCRIPT',
+    version: 'ES2024 // ECMASCRIPT NEXT',
+    color: '#ffe600',
+    desc: 'El lenguaje del navegador. Monohilo con event loop no-bloqueante. Trasciende la web con Node.js, Deno y Bun. Prototype-based con soporte de clases ES6+.',
+    stats: [{ val: '#1', lbl: 'WEB LANG' }, { val: '98.9%', lbl: 'BROWSERS' }, { val: '2.5M+', lbl: 'NPM PKGS' }],
+    concepts: ['Closures', 'Promises', 'Proxy/Reflect', 'Generators', 'Event Loop', 'Prototype', 'WeakRef', 'Workers'],
+    code: `// Async generator con AbortController
+async function* streamData(url, signal) {
+  const res = await fetch(url, { signal });
+  const reader = res.body.getReader();
+  const dec = new TextDecoder();
 
-        var container = document.getElementById('mynetwork');
-        var data = { nodes: nodes, edges: edges };
-        var options = {
-            nodes: { color: { border: '#00f3ff', background: '#020205' }, font: { color: '#00f3ff' } },
-            edges: { color: '#444' },
-            physics: { forceAtlas2Based: { gravitationalConstant: -100 }, solver: 'forceAtlas2Based' }
-        };
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      yield dec.decode(value, { stream: true });
+    }
+  } finally {
+    reader.releaseLock();
+  }
+}
 
-        var network = new vis.Network(container, data, options);
+// uso con AbortController
+const ac = new AbortController();
+for await (const chunk of streamData('/api', ac.signal)) {
+  console.log(chunk);
+}`,
+    uses: ['Frontend (React / Vue / Svelte)', 'Backend con Node.js / Bun', 'Apps Móviles (React Native)', 'Serverless Functions', 'WebAssembly Glue'],
+  },
+  4: {
+    title: 'C++',
+    version: 'C++23 // ISO STANDARD',
+    color: '#ff006a',
+    desc: 'Control total sobre hardware y memoria. Lenguaje compilado de máxima performance. Usado en sistemas embebidos, motores de videojuegos, HFT y kernels de SO.',
+    stats: [{ val: 'ns', lbl: 'LATENCIA' }, { val: '44yr', lbl: 'HISTORIA' }, { val: '0', lbl: 'OVERHEAD' }],
+    concepts: ['RAII', 'Templates', 'Smart Ptr', 'Move Sem.', 'Constexpr', 'Coroutines', 'Ranges', 'Modules', 'Concepts'],
+    code: `#include <iostream>
+#include <ranges>
+#include <vector>
+#include <algorithm>
 
-        network.on("click", function (params) {
-            if (params.nodes.length > 0) {
-                const id = params.nodes[0];
-                const info = nodeInfo[id];
-                if (info) {
-                    document.getElementById('info-panel').style.display = 'block';
-                    document.getElementById('node-title').innerText = info.t;
-                    document.getElementById('node-desc').innerText = info.d;
-                    document.getElementById('node-code').innerText = info.c;
-                }
-            } else {
-                document.getElementById('info-panel').style.display = 'none';
-            }
-        });
-    </script>
+// C++23: ranges + concepts
+template <std::integral T>
+auto prime_sieve(T limit) -> std::vector<T> {
+    std::vector<bool> sieve(limit + 1, true);
+    sieve[0] = sieve[1] = false;
+    for (T i = 2; i * i <= limit; ++i)
+        if (sieve[i])
+            for (T j = i*i; j <= limit; j += i)
+                sieve[j] = false;
+
+    auto nums = std::views::iota(T{2}, limit+1)
+              | std::views::filter([&](T n){ return sieve[n]; });
+    return { nums.begin(), nums.end() };
+}
+
+int main() {
+    for (auto p : prime_sieve(50))
+        std::cout << p << " ";
+}`,
+    uses: ['Motores de Juego (Unreal)', 'Sistemas Operativos', 'Trading de Alta Frecuencia', 'Gráficos 3D / GPU', 'Compiladores & VMs'],
+  },
+  5: {
+    title: 'JAVA',
+    version: 'JDK 21 LTS // VIRTUAL THREADS',
+    color: '#bc00ff',
+    desc: 'Write Once, Run Anywhere. Plataforma JVM con tipado estático fuerte. Dominante en enterprise y Android. JDK 21 introduce Virtual Threads y Records para concurrencia masiva.',
+    stats: [{ val: 'JVM', lbl: 'RUNTIME' }, { val: '3B+', lbl: 'DEVICES' }, { val: '29yr', lbl: 'HISTORIA' }],
+    concepts: ['JVM/JIT', 'Generics', 'Streams API', 'Records', 'Sealed', 'Pattern Match', 'VThreads', 'Modules'],
+    code: `import java.util.concurrent.*;
+import java.util.stream.*;
+
+// Java 21: Virtual Threads + Records
+record Task(int id, String name) {}
+
+public class VirtualDemo {
+    public static void main(String[] args)
+            throws InterruptedException {
+
+        // 1 millón de virtual threads sin problema
+        try (var executor =
+             Executors.newVirtualThreadPerTaskExecutor()) {
+
+            var futures = IntStream.range(0, 100)
+                .mapToObj(i -> new Task(i, "task-" + i))
+                .map(t -> executor.submit(() -> {
+                    Thread.sleep(10); // no bloquea OS thread
+                    return t.name().toUpperCase();
+                }))
+                .toList();
+
+            futures.stream()
+                   .map(f -> { try { return f.get(); }
+                               catch (Exception e) { return "ERR"; } })
+                   .limit(5)
+                   .forEach(System.out::println);
+        }
+    }
+}`,
+    uses: ['Enterprise (Spring Boot)', 'Android Development', 'Big Data (Hadoop/Kafka)', 'Microservicios', 'Sistemas Bancarios'],
+  },
+};
+
+// ── NETWORK ──
+const nodes = new vis.DataSet([
+  {
+    id: 1,
+    label: 'MUNDO\nDIGITAL',
+    shape: 'diamond',
+    size: 52,
+    color: {
+      background: '#1a0033',
+      border: '#bc00ff',
+      highlight: { background: '#2d0055', border: '#e040ff' },
+    },
+    font: { color: '#bc00ff', size: 13, face: 'Space Mono', bold: true, strokeWidth: 3, strokeColor: '#000' },
+    borderWidth: 2.5,
+    shadow: { enabled: true, color: 'rgba(188,0,255,0.6)', size: 30, x: 0, y: 0 },
+  },
+  {
+    id: 2, label: 'PYTHON',
+    shape: 'dot', size: 30,
+    color: { background: '#001a0f', border: '#00ff9d', highlight: { background: '#002d1a', border: '#40ffb0' } },
+    font: { color: '#00ff9d', size: 11, face: 'Space Mono', bold: true, strokeWidth: 3, strokeColor: '#000' },
+    borderWidth: 2, shadow: { enabled: true, color: 'rgba(0,255,157,0.5)', size: 22, x: 0, y: 0 },
+  },
+  {
+    id: 3, label: 'JAVASCRIPT',
+    shape: 'dot', size: 30,
+    color: { background: '#1a1600', border: '#ffe600', highlight: { background: '#2d2500', border: '#ffed40' } },
+    font: { color: '#ffe600', size: 11, face: 'Space Mono', bold: true, strokeWidth: 3, strokeColor: '#000' },
+    borderWidth: 2, shadow: { enabled: true, color: 'rgba(255,230,0,0.5)', size: 22, x: 0, y: 0 },
+  },
+  {
+    id: 4, label: 'C++',
+    shape: 'dot', size: 30,
+    color: { background: '#1a0009', border: '#ff006a', highlight: { background: '#2d0010', border: '#ff4090' } },
+    font: { color: '#ff006a', size: 11, face: 'Space Mono', bold: true, strokeWidth: 3, strokeColor: '#000' },
+    borderWidth: 2, shadow: { enabled: true, color: 'rgba(255,0,106,0.5)', size: 22, x: 0, y: 0 },
+  },
+  {
+    id: 5, label: 'JAVA',
+    shape: 'dot', size: 30,
+    color: { background: '#1a0033', border: '#bc00ff', highlight: { background: '#2d0055', border: '#d060ff' } },
+    font: { color: '#bc00ff', size: 11, face: 'Space Mono', bold: true, strokeWidth: 3, strokeColor: '#000' },
+    borderWidth: 2, shadow: { enabled: true, color: 'rgba(188,0,255,0.5)', size: 22, x: 0, y: 0 },
+  },
+]);
+
+const edges = new vis.DataSet([
+  { from: 1, to: 2, color: { color: '#00ff9d', opacity: 0.35, highlight: '#00ff9d' }, width: 1.5, dashes: [6, 4], smooth: { type: 'dynamic' } },
+  { from: 1, to: 3, color: { color: '#ffe600', opacity: 0.35, highlight: '#ffe600' }, width: 1.5, dashes: [6, 4], smooth: { type: 'dynamic' } },
+  { from: 1, to: 4, color: { color: '#ff006a', opacity: 0.35, highlight: '#ff006a' }, width: 1.5, dashes: [6, 4], smooth: { type: 'dynamic' } },
+  { from: 1, to: 5, color: { color: '#bc00ff', opacity: 0.35, highlight: '#bc00ff' }, width: 1.5, dashes: [6, 4], smooth: { type: 'dynamic' } },
+]);
+
+const container = document.getElementById('mynetwork');
+const network = new vis.Network(container, { nodes, edges }, {
+  physics: {
+    enabled: true,
+    solver: 'forceAtlas2Based',
+    forceAtlas2Based: {
+      gravitationalConstant: -80,
+      centralGravity: 0.005,
+      springLength: 200,
+      springConstant: 0.04,
+      damping: 0.4,
+      avoidOverlap: 0.8,
+    },
+    stabilization: { iterations: 200, fit: true },
+  },
+  interaction: {
+    hover: true,
+    tooltipDelay: 0,
+    zoomView: true,
+    dragView: true,
+  },
+  edges: {
+    smooth: { type: 'dynamic' },
+    selectionWidth: 3,
+  },
+  nodes: {
+    chosen: {
+      node: (values) => {
+        values.shadowSize = 45;
+      },
+    },
+  },
+  background: 'transparent',
+});
+
+// ── PANEL LOGIC ──
+function closePanel() {
+  const panel = document.getElementById('info-panel');
+  panel.style.animation = 'none';
+  panel.style.opacity = '0';
+  panel.style.transform = 'translateY(-50%) translateX(20px)';
+  panel.style.transition = 'all 0.2s ease';
+  setTimeout(() => {
+    panel.style.display = 'none';
+    panel.style.opacity = '';
+    panel.style.transform = '';
+    panel.style.transition = '';
+    panel.style.animation = '';
+  }, 200);
+  network.unselectAll();
+}
+
+network.on('click', function (params) {
+  if (!params.nodes.length) { closePanel(); return; }
+  const id = Number(params.nodes[0]);
+  if (id === 1 || !LANG_DATA[id]) { closePanel(); return; }
+
+  const d = LANG_DATA[id];
+  const panel = document.getElementById('info-panel');
+
+  // Title & meta
+  document.getElementById('panel-title').textContent = d.title;
+  document.getElementById('panel-title').style.color = d.color;
+  document.getElementById('panel-title').style.textShadow = `0 0 20px ${d.color}88`;
+  document.getElementById('panel-version').textContent = d.version;
+
+  // Desc
+  document.getElementById('panel-desc').textContent = d.desc;
+
+  // Stats
+  const statsEl = document.getElementById('panel-stats');
+  statsEl.innerHTML = d.stats.map(s => `
+    <div class="stat-chip">
+      <span class="val" style="color:${d.color}">${s.val}</span>
+      <span class="lbl">${s.lbl}</span>
+    </div>`).join('');
+
+  // Concepts
+  const conceptsEl = document.getElementById('panel-concepts');
+  conceptsEl.innerHTML = d.concepts.map(c => `
+    <div class="concept-tag" style="border-color:${d.color}55;color:${d.color}">${c}</div>`).join('');
+
+  // Code
+  document.getElementById('panel-code').textContent = d.code;
+  document.getElementById('code-box-wrap').style.borderLeftColor = d.color;
+  document.getElementById('code-tag').style.color = d.color;
+
+  // Uses
+  const usesEl = document.getElementById('panel-uses');
+  usesEl.innerHTML = d.uses.map(u => `<div class="use-case-item">${u}</div>`).join('');
+
+  // Show
+  panel.style.display = 'block';
+  panel.style.animation = 'panelIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards';
+  panel.scrollTop = 0;
+});
+
+network.on('hoverNode', () => { container.style.cursor = 'pointer'; });
+network.on('blurNode', () => { container.style.cursor = 'default'; });
+
+// ── ORBIT SUBTLE ANIMATION ──
+// give the lang nodes a gentle float after stabilization
+network.once('stabilizationIterationsDone', () => {
+  document.getElementById('node-count').textContent = nodes.length;
+});
+</script>
 </body>
 </html>
-
