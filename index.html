@@ -1,1 +1,1048 @@
-s
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Neuro Core // Portal Universitario</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.9/standalone/umd/vis-network.min.js"></script>
+<style>
+:root{
+  --bg:#02010c;
+  --cyan:#00e8ff;
+  --purple:#b200ff;
+  --pink:#ff1f6e;
+  --green:#00ff85;
+  --gold:#ffbe00;
+  --orange:#ff6d00;
+  --nav-h:56px;
+  --side-w:292px;
+  --fh:'Orbitron',monospace;
+  --fm:'Share Tech Mono',monospace;
+  --bc:rgba(0,232,255,0.16);
+  --glass:rgba(2,1,14,0.91);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);font-family:var(--fm);color:var(--cyan)}
+
+/* ─── CANVAS ─── */
+#cv{position:fixed;inset:0;z-index:0}
+
+/* ─── SCANLINE ─── */
+.scan{position:fixed;left:0;top:-3px;width:100%;height:2px;pointer-events:none;z-index:999;
+  background:linear-gradient(90deg,transparent 0%,var(--cyan) 50%,transparent 100%);
+  box-shadow:0 0 16px 4px rgba(0,232,255,0.28);animation:sc 5s linear infinite}
+@keyframes sc{0%{top:-3px;opacity:0}3%{opacity:1}97%{opacity:1}100%{top:100vh;opacity:0}}
+
+/* ─── NAVBAR ─── */
+#nav{position:fixed;top:0;left:0;right:0;height:var(--nav-h);z-index:500;
+  background:rgba(2,1,14,0.95);border-bottom:1px solid var(--bc);
+  backdrop-filter:blur(14px);display:flex;align-items:center;padding:0 16px;gap:0;
+  box-shadow:0 1px 40px rgba(0,232,255,0.06)}
+
+.logo{font-family:var(--fh);font-size:13.5px;font-weight:900;letter-spacing:.22em;
+  color:var(--cyan);text-shadow:0 0 16px var(--cyan);margin-right:22px;
+  display:flex;align-items:center;gap:8px;white-space:nowrap}
+.logo-dot{width:8px;height:8px;border-radius:50%;background:var(--cyan);
+  box-shadow:0 0 10px var(--cyan);animation:ldot 2.2s ease-in-out infinite}
+@keyframes ldot{0%,100%{box-shadow:0 0 7px var(--cyan)}50%{box-shadow:0 0 20px var(--cyan),0 0 40px rgba(0,232,255,0.4)}}
+
+/* NAV ITEMS */
+.nav-menu{display:flex;align-items:center;flex:1}
+.ni{position:relative}
+.nb{background:none;border:none;font-family:var(--fm);font-size:10.5px;letter-spacing:.13em;
+  text-transform:uppercase;color:rgba(0,232,255,0.5);padding:8px 14px;cursor:pointer;
+  transition:.2s;display:flex;align-items:center;gap:5px;white-space:nowrap}
+.nb:hover,.ni.open .nb{color:var(--cyan);text-shadow:0 0 8px var(--cyan)}
+.nb .arr{font-size:7px;transition:transform .2s}
+.ni.open .nb .arr{transform:rotate(180deg)}
+.nind{position:absolute;bottom:0;left:50%;transform:translateX(-50%);width:0;height:2px;
+  background:var(--cyan);box-shadow:0 0 7px var(--cyan);transition:width .3s}
+.ni:hover .nind,.ni.open .nind{width:60%}
+
+/* DROPDOWN */
+.dd{position:absolute;top:calc(var(--nav-h) - 1px);left:0;min-width:210px;
+  background:rgba(2,1,18,0.98);border:1px solid var(--bc);border-top:2px solid;
+  box-shadow:0 28px 60px rgba(0,0,0,0.88),0 0 22px rgba(0,232,255,0.05);
+  display:none;flex-direction:column;z-index:600;animation:ddin .18s ease}
+@keyframes ddin{from{opacity:0;transform:translateY(-7px)}to{opacity:1;transform:translateY(0)}}
+.ni.open .dd{display:flex}
+.dds{padding:4px 0;border-bottom:1px solid rgba(255,255,255,0.04)}
+.dds:last-child{border-bottom:none}
+.ddsl{font-size:7px;letter-spacing:.42em;color:rgba(255,255,255,0.18);padding:5px 13px 2px;text-transform:uppercase}
+.ddi{display:flex;align-items:center;gap:8px;padding:8px 13px;font-size:10.5px;
+  letter-spacing:.07em;color:rgba(0,232,255,0.48);cursor:pointer;
+  transition:.15s;border-left:2px solid transparent}
+.ddi:hover{color:var(--cyan);background:rgba(0,232,255,0.05);border-left-color:var(--cyan)}
+.ddi .di{font-size:13px;width:18px;text-align:center}
+.badge{margin-left:auto;font-size:7px;padding:1px 5px;border:1px solid;letter-spacing:.08em;border-radius:1px}
+
+.nav-r{margin-left:auto;display:flex;align-items:center;gap:10px}
+.nclock{font-size:11px;letter-spacing:.15em;color:rgba(0,232,255,0.35);font-family:var(--fm)}
+.nsearch{background:rgba(0,232,255,0.04);border:1px solid rgba(0,232,255,0.14);
+  color:var(--cyan);font-family:var(--fm);font-size:10px;padding:5px 11px;
+  outline:none;width:128px;transition:.2s;letter-spacing:.05em}
+.nsearch:focus{border-color:rgba(0,232,255,0.42);width:165px}
+.nsearch::placeholder{color:rgba(0,232,255,0.2)}
+
+/* ─── LAYOUT ─── */
+#layout{position:fixed;top:var(--nav-h);left:0;right:0;bottom:0;display:flex}
+#ga{flex:1;position:relative;overflow:hidden}
+#mynetwork{position:absolute;inset:0;width:100%;height:100%}
+
+/* ─── SIDEBAR ─── */
+#sb{width:var(--side-w);background:rgba(2,1,13,0.92);border-left:1px solid var(--bc);
+  display:flex;flex-direction:column;backdrop-filter:blur(16px);overflow:hidden;flex-shrink:0}
+
+/* MUSIC PLAYER */
+.mp{padding:13px 15px;border-bottom:1px solid rgba(0,232,255,0.07);background:rgba(0,232,255,0.014)}
+.mp-hd{font-size:7px;letter-spacing:.42em;color:rgba(0,232,255,0.26);margin-bottom:7px;text-transform:uppercase}
+.mp-title{font-size:10.5px;letter-spacing:.07em;color:var(--cyan);margin-bottom:8px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mp-viz{height:30px;display:flex;align-items:flex-end;gap:2px;margin-bottom:8px}
+.mp-bar{flex:1;background:var(--cyan);border-radius:1px 1px 0 0;opacity:.5;min-height:2px;transition:height .09s}
+.mp-ctrl{display:flex;align-items:center;gap:6px}
+.mpb{background:none;border:1px solid rgba(0,232,255,0.17);color:var(--cyan);cursor:pointer;
+  width:27px;height:27px;display:flex;align-items:center;justify-content:center;font-size:11px;
+  transition:.2s;font-family:var(--fm)}
+.mpb:hover,.mpb.on{background:rgba(0,232,255,0.09);border-color:var(--cyan)}
+.mp-inf{flex:1;font-size:8px;color:rgba(0,232,255,0.32);letter-spacing:.04em}
+.mp-vol{display:flex;align-items:center;gap:6px;margin-top:6px}
+.mp-vl{font-size:7px;color:rgba(0,232,255,0.25);letter-spacing:.18em}
+.vslide{flex:1;-webkit-appearance:none;appearance:none;height:2px;background:rgba(0,232,255,0.1);outline:none;cursor:pointer}
+.vslide::-webkit-slider-thumb{-webkit-appearance:none;width:9px;height:9px;border-radius:50%;background:var(--cyan);box-shadow:0 0 5px var(--cyan)}
+
+/* ─── ROTATING PANEL ─── */
+.rp-header{padding:0;border-bottom:1px solid rgba(0,232,255,0.07);display:flex;align-items:stretch}
+.rp-tab{flex:1;padding:8px 4px;font-size:7px;letter-spacing:.16em;text-transform:uppercase;
+  color:rgba(0,232,255,0.3);cursor:pointer;border:none;background:none;font-family:var(--fm);
+  border-bottom:2px solid transparent;transition:.2s;line-height:1.2;text-align:center}
+.rp-tab.act,.rp-tab:hover{color:var(--cyan);border-bottom-color:var(--cyan);background:rgba(0,232,255,0.025)}
+.rp-timer{height:2px;background:rgba(0,232,255,0.07);position:relative;overflow:hidden}
+.rp-timer-bar{height:100%;width:100%;background:linear-gradient(to right,var(--purple),var(--cyan));
+  transform:scaleX(0);transform-origin:left;transition:none}
+.rp-timer-bar.running{transform:scaleX(1);transition:transform linear}
+
+/* PANEL CONTENT */
+.rp-content{flex:1;overflow-y:auto;scrollbar-width:thin;scrollbar-color:rgba(0,232,255,0.14) transparent}
+.rp-content::-webkit-scrollbar{width:2px}
+.rp-content::-webkit-scrollbar-thumb{background:rgba(0,232,255,0.16)}
+.rp-pane{display:none;padding:12px}
+.rp-pane.act{display:block}
+
+/* CARDS */
+.card{border:1px solid rgba(0,232,255,0.09);background:rgba(0,232,255,0.014);margin-bottom:9px;overflow:hidden}
+.card-hd{padding:7px 11px;border-bottom:1px solid rgba(0,232,255,0.06);font-size:7px;
+  letter-spacing:.3em;color:rgba(0,232,255,0.36);text-transform:uppercase;
+  display:flex;align-items:center;justify-content:space-between}
+.card-hd .accent{color:var(--cyan)}
+.card-bd{padding:9px 11px}
+
+/* FACT CARD */
+.fact-body{font-size:10.5px;line-height:1.78;color:rgba(0,232,255,0.62);letter-spacing:.04em}
+.fact-body strong{color:var(--cyan)}
+.fact-nav{display:flex;justify-content:space-between;align-items:center;margin-top:8px}
+.fact-dots{display:flex;gap:4px}
+.fdot{width:5px;height:5px;border-radius:50%;background:rgba(0,232,255,0.18);transition:.2s}
+.fdot.act{background:var(--cyan);box-shadow:0 0 5px var(--cyan)}
+.fact-arr{background:none;border:1px solid rgba(0,232,255,0.18);color:var(--cyan);
+  cursor:pointer;font-size:10px;padding:2px 7px;font-family:var(--fm);transition:.2s}
+.fact-arr:hover{background:rgba(0,232,255,0.09)}
+
+/* NEWS CARD */
+.news-item{padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.04);cursor:pointer;transition:.15s}
+.news-item:last-child{border-bottom:none}
+.news-item:hover .news-title{color:var(--cyan)}
+.news-tag{font-size:7px;letter-spacing:.25em;padding:1px 5px;border:1px solid;
+  border-radius:1px;text-transform:uppercase;margin-bottom:4px;display:inline-block}
+.news-title{font-size:10px;color:rgba(0,232,255,0.58);line-height:1.5;letter-spacing:.04em;transition:.2s}
+.news-meta{font-size:8px;color:rgba(0,232,255,0.25);margin-top:3px;letter-spacing:.06em}
+
+/* RESOURCE CARD */
+.res-item{display:flex;align-items:center;gap:8px;padding:6px 0;
+  border-bottom:1px solid rgba(255,255,255,0.04);font-size:10px;
+  color:rgba(0,232,255,0.48);cursor:pointer;transition:color .15s}
+.res-item:hover{color:var(--cyan)}
+.res-item:last-child{border-bottom:none}
+.ri{font-size:13px;width:18px;text-align:center}
+.ri-l{flex:1;letter-spacing:.04em}
+.ri-t{font-size:7px;padding:1px 5px;border:1px solid rgba(0,232,255,0.18);color:rgba(0,232,255,0.33);letter-spacing:.08em}
+
+/* PROGRESS */
+.pi{margin-bottom:9px}
+.pi-lbl{display:flex;justify-content:space-between;font-size:8px;margin-bottom:3px;color:rgba(0,232,255,0.42);letter-spacing:.06em}
+.pi-track{height:2px;background:rgba(0,232,255,0.07);overflow:hidden}
+.pi-fill{height:100%;background:linear-gradient(to right,var(--purple),var(--cyan));
+  box-shadow:0 0 5px var(--cyan);transition:width 1.5s cubic-bezier(.16,1,.3,1);width:0}
+
+/* MINI CHART */
+.mch{display:flex;align-items:flex-end;gap:3px;height:38px;margin-top:6px}
+.mch-b{flex:1;border-radius:1px 1px 0 0;opacity:.7;transition:opacity .2s;cursor:default}
+.mch-b:hover{opacity:1}
+.mch-ls{display:flex;gap:3px;margin-top:3px}
+.mch-l{flex:1;font-size:6.5px;text-align:center;color:rgba(0,232,255,0.26);letter-spacing:.04em}
+
+/* SIDEBAR FOOTER */
+.sb-ft{padding:7px 12px;border-top:1px solid rgba(0,232,255,0.06);font-size:7px;
+  color:rgba(0,232,255,0.18);letter-spacing:.12em;text-align:center}
+
+/* ─── HUD CORNERS ─── */
+.hc{position:fixed;width:18px;height:18px;z-index:200;pointer-events:none}
+.hc.tl{top:64px;left:7px;border-top:1px solid rgba(0,232,255,0.26);border-left:1px solid rgba(0,232,255,0.26)}
+.hc.bl{bottom:7px;left:7px;border-bottom:1px solid rgba(0,232,255,0.26);border-left:1px solid rgba(0,232,255,0.26)}
+
+/* ─── MODAL ─── */
+#mo{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.68);z-index:790;backdrop-filter:blur(5px)}
+#mi{display:none;position:fixed;top:50%;left:calc(50% - var(--side-w)/2 + 5px);
+  transform:translate(-50%,-50%);width:min(600px,calc(100vw - var(--side-w) - 50px));
+  max-height:84vh;background:rgba(2,1,14,0.98);
+  border:1px solid var(--bc);
+  box-shadow:0 0 0 1px rgba(0,232,255,0.04),0 0 55px rgba(0,232,255,0.13),0 0 110px rgba(178,0,255,0.08);
+  z-index:800;overflow:hidden;backdrop-filter:blur(22px);animation:moin .32s cubic-bezier(.16,1,.3,1)}
+@keyframes moin{from{opacity:0;transform:translate(-50%,-50%) scale(.9)}to{opacity:1;transform:translate(-50%,-50%) scale(1)}}
+
+.mh{padding:17px 21px 13px;border-bottom:1px solid rgba(0,232,255,0.08);
+  display:flex;align-items:flex-start;justify-content:space-between;position:relative}
+.mh::after{content:'';position:absolute;bottom:0;left:0;right:0;height:1px;
+  background:linear-gradient(to right,transparent,var(--cyan),transparent);opacity:.2}
+.m-ic{font-size:32px;margin-right:11px;filter:drop-shadow(0 0 10px currentColor)}
+.m-tg{flex:1}
+.m-ey{font-size:7px;letter-spacing:.42em;color:rgba(0,232,255,0.3);margin-bottom:3px;text-transform:uppercase}
+.m-tt{font-family:var(--fh);font-size:20px;font-weight:700;letter-spacing:.12em;line-height:1}
+.m-sb{font-size:8px;opacity:.35;letter-spacing:.16em;margin-top:3px}
+.mcl{background:none;border:1px solid rgba(0,232,255,0.17);color:var(--cyan);
+  width:27px;height:27px;cursor:pointer;font-size:12px;display:flex;align-items:center;justify-content:center;
+  transition:.2s;font-family:var(--fm);flex-shrink:0}
+.mcl:hover{background:rgba(0,232,255,0.09);border-color:var(--cyan)}
+
+.mb{padding:17px 21px;overflow-y:auto;max-height:calc(84vh - 110px);
+  scrollbar-width:thin;scrollbar-color:var(--cyan) transparent}
+.mb::-webkit-scrollbar{width:2px}
+.mb::-webkit-scrollbar-thumb{background:var(--cyan)}
+.m-desc{font-size:11px;line-height:1.82;color:rgba(0,232,255,0.6);margin-bottom:15px}
+.m-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:15px}
+.sbox{padding:8px 5px;border:1px solid rgba(0,232,255,0.08);background:rgba(0,232,255,0.018);text-align:center}
+.sbox .v{font-family:var(--fh);font-size:13px;font-weight:700;display:block}
+.sbox .l{font-size:6.5px;opacity:.3;letter-spacing:.16em;margin-top:2px;display:block;text-transform:uppercase}
+.sl{font-size:7px;letter-spacing:.4em;color:rgba(0,232,255,0.27);text-transform:uppercase;
+  margin-bottom:6px;display:flex;align-items:center;gap:7px}
+.sl::after{content:'';flex:1;height:1px;background:rgba(0,232,255,0.07)}
+.tc{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:15px}
+.tag{padding:3px 9px;border:1px solid;font-size:8px;letter-spacing:.09em;text-transform:uppercase;opacity:.65;transition:.2s;cursor:default}
+.tag:hover{opacity:1}
+.cb{background:rgba(0,0,0,0.55);border:1px solid rgba(0,232,255,0.1);border-left:3px solid;
+  padding:12px 14px;margin-bottom:15px;position:relative;overflow:hidden}
+.cb::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;
+  background:linear-gradient(to right,transparent,rgba(0,232,255,.25),transparent)}
+.cb pre{font-family:var(--fm);font-size:10.5px;line-height:1.74;white-space:pre-wrap;color:rgba(205,255,255,0.82)}
+.cblng{position:absolute;top:5px;right:9px;font-size:6.5px;letter-spacing:.28em;opacity:.26;text-transform:uppercase}
+.ur{display:flex;align-items:center;gap:8px;padding:6px 0;
+  border-bottom:1px solid rgba(255,255,255,0.04);font-size:10.5px;color:rgba(0,232,255,0.5)}
+.ur::before{content:'▸';opacity:.36;font-size:9px}
+.ur:last-child{border-bottom:none}
+
+/* HINT */
+.hint{position:fixed;bottom:9px;left:50%;transform:translateX(-50%);
+  font-size:8px;letter-spacing:.22em;color:rgba(0,232,255,0.2);text-transform:uppercase;
+  z-index:300;pointer-events:none;animation:hf 4s ease-in-out 5s forwards}
+@keyframes hf{0%{opacity:1}100%{opacity:0}}
+
+@media(max-width:700px){#sb{display:none}.nsearch{display:none}}
+</style>
+</head>
+<body>
+
+<canvas id="cv"></canvas>
+<div class="scan"></div>
+<div class="hc tl"></div><div class="hc bl"></div>
+
+<!-- ══════════ NAVBAR ══════════ -->
+<nav id="nav">
+  <div class="logo"><div class="logo-dot"></div>Red Digital de Aprendizaje <span style="font-size:8px;opacity:.4;letter-spacing:.3em">By César Navarro</span></div>
+
+  <div class="nav-menu">
+
+    <!-- PROGRAMACIÓN -->
+    <div class="ni" id="ni-prog">
+      <button class="nb" onclick="toggleNav('ni-prog')">
+        <span>⬡</span> Programación <span class="arr">▾</span>
+      </button>
+      <div class="nind"></div>
+      <div class="dd" style="border-top-color:var(--green)">
+        <div class="dds">
+          <div class="ddsl">Lenguajes — Click para explorar</div>
+          <div class="ddi" onclick="focusNode(2)"><span class="di">🐍</span>Python<span class="badge" style="color:var(--green);border-color:var(--green)">IA/DATA</span></div>
+          <div class="ddi" onclick="focusNode(3)"><span class="di">⚡</span>JavaScript<span class="badge" style="color:var(--gold);border-color:var(--gold)">WEB</span></div>
+          <div class="ddi" onclick="focusNode(4)"><span class="di">⚙️</span>C++<span class="badge" style="color:var(--pink);border-color:var(--pink)">SYSTEMS</span></div>
+          <div class="ddi" onclick="focusNode(5)"><span class="di">☕</span>Java<span class="badge" style="color:var(--purple);border-color:var(--purple)">ENTERPRISE</span></div>
+        </div>
+        <div class="dds">
+          <div class="ddsl">Paradigmas & Teoría</div>
+          <div class="ddi"><span class="di">🔁</span>Estructuras de Datos y Algoritmos</div>
+          <div class="ddi"><span class="di">🧩</span>POO · Funcional · Reactivo</div>
+          <div class="ddi"><span class="di">🧪</span>Testing · TDD · CI/CD</div>
+          <div class="ddi"><span class="di">🏗️</span>Patrones de Diseño (GoF)</div>
+        </div>
+        <div class="dds">
+          <div class="ddsl">Computación Avanzada</div>
+          <div class="ddi"><span class="di">🤖</span>Inteligencia Artificial / ML</div>
+          <div class="ddi"><span class="di">🌐</span>Compiladores e Intérpretes</div>
+          <div class="ddi"><span class="di">⚡</span>Computación Paralela / CUDA</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- REDES / CIBERSEGURIDAD -->
+    <div class="ni" id="ni-redes">
+      <button class="nb" onclick="toggleNav('ni-redes')">
+        <span>◈</span> Redes &amp; Ciberseguridad <span class="arr">▾</span>
+      </button>
+      <div class="nind"></div>
+      <div class="dd" style="border-top-color:var(--pink)">
+        <div class="dds">
+          <div class="ddsl">Redes y Protocolos</div>
+          <div class="ddi"><span class="di">🌐</span>Modelo OSI · TCP/IP Stack</div>
+          <div class="ddi"><span class="di">📡</span>HTTP/2 · HTTP/3 · WebSockets</div>
+          <div class="ddi"><span class="di">🔌</span>Subnetting · VLSM · BGP</div>
+          <div class="ddi"><span class="di">☁️</span>SDN · NFV · Cloud Networking</div>
+        </div>
+        <div class="dds">
+          <div class="ddsl">Ciberseguridad Ofensiva</div>
+          <div class="ddi"><span class="di">🛡️</span>Pentesting Ético (CEH / OSCP)</div>
+          <div class="ddi"><span class="di">🔓</span>OWASP Top 10 · CVE / CVSS</div>
+          <div class="ddi"><span class="di">💉</span>SQL Injection · XSS · CSRF</div>
+          <div class="ddi"><span class="di">🎭</span>Ingeniería Social · Phishing</div>
+        </div>
+        <div class="dds">
+          <div class="ddsl">Defensiva & Forense</div>
+          <div class="ddi"><span class="di">🔥</span>Firewalls · IDS/IPS · SIEM</div>
+          <div class="ddi"><span class="di">🔐</span>PKI · TLS/mTLS · Zero Trust</div>
+          <div class="ddi"><span class="di">🕵️</span>Análisis Forense Digital</div>
+          <div class="ddi"><span class="di">📊</span>Threat Hunting · SOC Ops</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- BASES DE DATOS -->
+    <div class="ni" id="ni-db">
+      <button class="nb" onclick="toggleNav('ni-db')">
+        <span>◧</span> Bases de Datos <span class="arr">▾</span>
+      </button>
+      <div class="nind"></div>
+      <div class="dd" style="border-top-color:var(--gold)">
+        <div class="dds">
+          <div class="ddsl">Relacionales (SQL)</div>
+          <div class="ddi"><span class="di">🐘</span>PostgreSQL · Extensiones</div>
+          <div class="ddi"><span class="di">🐬</span>MySQL · MariaDB</div>
+          <div class="ddi"><span class="di">📝</span>SQL Avanzado · Window Fns</div>
+          <div class="ddi"><span class="di">⚙️</span>Optimización · Índices · Explain</div>
+        </div>
+        <div class="dds">
+          <div class="ddsl">No Relacionales</div>
+          <div class="ddi"><span class="di">🍃</span>MongoDB · Aggregation Pipeline</div>
+          <div class="ddi"><span class="di">⚡</span>Redis · Pub/Sub · Lua Scripting</div>
+          <div class="ddi"><span class="di">🔍</span>Elasticsearch · OpenSearch</div>
+          <div class="ddi"><span class="di">📈</span>InfluxDB · TimescaleDB</div>
+        </div>
+        <div class="dds">
+          <div class="ddsl">Arquitectura & Big Data</div>
+          <div class="ddi"><span class="di">🏛️</span>Data Warehousing · OLAP</div>
+          <div class="ddi"><span class="di">🌊</span>Apache Kafka · Spark Streaming</div>
+          <div class="ddi"><span class="di">🦆</span>DuckDB · Columnar Storage</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="nav-r">
+    <div class="nclock" id="nclock">00:00:00</div>
+    <input class="nsearch" type="text" placeholder="// buscar tema...">
+  </div>
+</nav>
+
+<!-- ══════════ LAYOUT ══════════ -->
+<div id="layout">
+  <div id="ga"><div id="mynetwork"></div></div>
+
+  <!-- ══════════ SIDEBAR ══════════ -->
+  <aside id="sb">
+
+    <!-- MUSIC PLAYER -->
+    <div class="mp">
+      <div class="mp-hd">// CYBERLEARN FM — GENERATIVE LOFI</div>
+      <div class="mp-title" id="mpt">◈ Presiona ▶ para iniciar...</div>
+      <div class="mp-viz" id="mpv"></div>
+      <div class="mp-ctrl">
+        <button class="mpb" onclick="prevT()">⏮</button>
+        <button class="mpb" id="mpplay" onclick="toggleM()">▶</button>
+        <button class="mpb" onclick="nextT()">⏭</button>
+        <div class="mp-inf" id="mpinf">OFFLINE</div>
+      </div>
+      <div class="mp-vol">
+        <span class="mp-vl">VOL</span>
+        <input type="range" class="vslide" id="vols" min="0" max="100" value="48" oninput="setVol(this.value)">
+      </div>
+    </div>
+
+    <!-- ROTATING PANEL TABS -->
+    <div class="rp-header">
+      <button class="rp-tab act" id="rpt0" onclick="switchRP(0)">💡 Dato</button>
+      <button class="rp-tab" id="rpt1" onclick="switchRP(1)">📰 Noticias</button>
+      <button class="rp-tab" id="rpt2" onclick="switchRP(2)">📚 Recursos</button>
+      <button class="rp-tab" id="rpt3" onclick="switchRP(3)">📊 Stats</button>
+    </div>
+    <div class="rp-timer"><div class="rp-timer-bar" id="rtbar"></div></div>
+
+    <div class="rp-content">
+
+      <!-- PANE 0: DATO CURIOSO -->
+      <div class="rp-pane act" id="rp0">
+        <div class="card">
+          <div class="card-hd"><span>💡 Dato Técnico del Día</span><span id="fact-idx" class="accent">1/10</span></div>
+          <div class="card-bd">
+            <div class="fact-body" id="fact-body">Cargando...</div>
+            <div class="fact-nav">
+              <div class="fact-dots" id="fact-dots"></div>
+              <div style="display:flex;gap:4px">
+                <button class="fact-arr" onclick="moveFact(-1)">◀</button>
+                <button class="fact-arr" onclick="moveFact(1)">▶</button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-hd">🧠 Tip Universitario</div>
+          <div class="card-bd">
+            <div class="fact-body" id="tip-body">Cargando...</div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-hd">⚡ Progreso de Adopción Global</div>
+          <div class="card-bd">
+            <div class="pi"><div class="pi-lbl"><span>Python en IA/ML</span><span>94%</span></div><div class="pi-track"><div class="pi-fill" data-w="94%"></div></div></div>
+            <div class="pi"><div class="pi-lbl"><span>JS en Navegadores</span><span>99%</span></div><div class="pi-track"><div class="pi-fill" data-w="99%"></div></div></div>
+            <div class="pi"><div class="pi-lbl"><span>Java en Enterprise</span><span>71%</span></div><div class="pi-track"><div class="pi-fill" data-w="71%"></div></div></div>
+            <div class="pi"><div class="pi-lbl"><span>C++ en Videojuegos</span><span>88%</span></div><div class="pi-track"><div class="pi-fill" data-w="88%"></div></div></div>
+            <div class="pi"><div class="pi-lbl"><span>PostgreSQL en Startups</span><span>76%</span></div><div class="pi-track"><div class="pi-fill" data-w="76%"></div></div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PANE 1: NOTICIAS -->
+      <div class="rp-pane" id="rp1">
+        <div class="card">
+          <div class="card-hd">📰 Tech News — Simuladas</div>
+          <div class="card-bd" id="news-bd"></div>
+        </div>
+        <div class="card">
+          <div class="card-hd">🔥 Tendencias 2025</div>
+          <div class="card-bd">
+            <div class="pi"><div class="pi-lbl"><span>LLMs / IA Generativa</span><span>🔥🔥🔥</span></div><div class="pi-track"><div class="pi-fill" data-w="100%"></div></div></div>
+            <div class="pi"><div class="pi-lbl"><span>Rust Adoption</span><span>🔥🔥</span></div><div class="pi-track"><div class="pi-fill" data-w="70%"></div></div></div>
+            <div class="pi"><div class="pi-lbl"><span>WebAssembly (WASM)</span><span>🔥🔥</span></div><div class="pi-track"><div class="pi-fill" data-w="65%"></div></div></div>
+            <div class="pi"><div class="pi-lbl"><span>Zero Trust Security</span><span>🔥🔥🔥</span></div><div class="pi-track"><div class="pi-fill" data-w="90%"></div></div></div>
+            <div class="pi"><div class="pi-lbl"><span>Edge Computing</span><span>🔥🔥</span></div><div class="pi-track"><div class="pi-fill" data-w="75%"></div></div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PANE 2: RECURSOS -->
+      <div class="rp-pane" id="rp2">
+        <div class="card">
+          <div class="card-hd">📚 Documentación Oficial</div>
+          <div class="card-bd">
+            <div class="res-item"><span class="ri">🐍</span><span class="ri-l">docs.python.org</span><span class="ri-t">OFICIAL</span></div>
+            <div class="res-item"><span class="ri">📒</span><span class="ri-l">MDN Web Docs</span><span class="ri-t">WEB</span></div>
+            <div class="res-item"><span class="ri">☕</span><span class="ri-l">docs.oracle.com/java</span><span class="ri-t">JAVA</span></div>
+            <div class="res-item"><span class="ri">⚙️</span><span class="ri-l">cppreference.com</span><span class="ri-t">C++</span></div>
+            <div class="res-item"><span class="ri">🐘</span><span class="ri-l">postgresql.org/docs</span><span class="ri-t">DB</span></div>
+            <div class="res-item"><span class="ri">🛡️</span><span class="ri-l">owasp.org</span><span class="ri-t">SECURITY</span></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-hd">🎓 Práctica Universitaria</div>
+          <div class="card-bd">
+            <div class="res-item"><span class="ri">⚔️</span><span class="ri-l">LeetCode (Algoritmos)</span><span class="ri-t">ALGO</span></div>
+            <div class="res-item"><span class="ri">🏴</span><span class="ri-l">HackTheBox</span><span class="ri-t">CTF</span></div>
+            <div class="res-item"><span class="ri">🎯</span><span class="ri-l">TryHackMe</span><span class="ri-t">CYBER</span></div>
+            <div class="res-item"><span class="ri">🤖</span><span class="ri-l">fast.ai — Deep Learning</span><span class="ri-t">AI</span></div>
+            <div class="res-item"><span class="ri">🌊</span><span class="ri-l">Kaggle Competitions</span><span class="ri-t">DATA</span></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-hd">🔧 Stack Profesional</div>
+          <div class="card-bd">
+            <div class="res-item"><span class="ri">🐳</span><span class="ri-l">Docker + Kubernetes</span><span class="ri-t">DEVOPS</span></div>
+            <div class="res-item"><span class="ri">🐙</span><span class="ri-l">GitHub + Actions CI</span><span class="ri-t">VCS</span></div>
+            <div class="res-item"><span class="ri">📊</span><span class="ri-l">Grafana + Prometheus</span><span class="ri-t">OBS</span></div>
+            <div class="res-item"><span class="ri">🔑</span><span class="ri-l">HashiCorp Vault</span><span class="ri-t">SECRETS</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PANE 3: STATS -->
+      <div class="rp-pane" id="rp3">
+        <div class="card">
+          <div class="card-hd">📈 TIOBE Index 2024</div>
+          <div class="card-bd">
+            <div class="mch" id="mch"></div>
+            <div class="mch-ls" id="mchl"></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-hd">💼 Salario Senior (USD/año)</div>
+          <div class="card-bd">
+            <div class="pi"><div class="pi-lbl"><span>C++ Systems Arch.</span><span>$165k</span></div><div class="pi-track"><div class="pi-fill" data-w="100%"></div></div></div>
+            <div class="pi"><div class="pi-lbl"><span>Python / ML Engineer</span><span>$152k</span></div><div class="pi-track"><div class="pi-fill" data-w="92%"></div></div></div>
+            <div class="pi"><div class="pi-lbl"><span>Security Researcher</span><span>$140k</span></div><div class="pi-track"><div class="pi-fill" data-w="85%"></div></div></div>
+            <div class="pi"><div class="pi-lbl"><span>Java Architect</span><span>$135k</span></div><div class="pi-track"><div class="pi-fill" data-w="82%"></div></div></div>
+            <div class="pi"><div class="pi-lbl"><span>DB Architect (PG)</span><span>$128k</span></div><div class="pi-track"><div class="pi-fill" data-w="77%"></div></div></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-hd">🌍 Mercado Tech Global</div>
+          <div class="card-bd">
+            <div class="fact-body" style="font-size:10px;line-height:1.76">
+              Hay <strong>~28.7M</strong> desarrolladores activos en el mundo.<br>
+              Déficit estimado de <strong>4M profesionales</strong> en ciberseguridad para 2025.<br>
+              El mercado de <strong>Big Data</strong> alcanzará $234B USD en 2026.<br>
+              La IA generará <strong>+12M empleos netos</strong> para 2030 según el WEF.
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /rp-content -->
+    <div class="sb-ft">CYBERLEARN UNI PORTAL // v3.0 // EDU-NET MX // 2025</div>
+  </aside>
+
+</div><!-- /layout -->
+
+<!-- ══════════ MODAL ══════════ -->
+<div id="mo" onclick="closeM()"></div>
+<div id="mi">
+  <div class="mh">
+    <div style="display:flex;align-items:center">
+      <div class="m-ic" id="m-ic">🌐</div>
+      <div class="m-tg">
+        <div class="m-ey">// PLANETA SELECCIONADO — ANÁLISIS TÉCNICO COMPLETO</div>
+        <div class="m-tt" id="m-tt">—</div>
+        <div class="m-sb" id="m-sb">—</div>
+      </div>
+    </div>
+    <button class="mcl" onclick="closeM()">✕</button>
+  </div>
+  <div class="mb">
+    <p class="m-desc" id="m-desc"></p>
+    <div class="m-grid" id="m-stats"></div>
+    <div class="sl">// Conceptos Fundamentales (nivel universitario)</div>
+    <div class="tc" id="m-tags"></div>
+    <div class="sl">// Ejemplo de Código Avanzado</div>
+    <div class="cb" id="m-cb"><div class="cblng" id="m-clng"></div><pre id="m-code"></pre></div>
+    <div class="sl">// Aplicaciones Industriales Reales</div>
+    <div id="m-uses"></div>
+  </div>
+</div>
+
+<div class="hint">▸ HAZ CLIC EN UN PLANETA PARA EXPLORAR SU UNIVERSO TÉCNICO ◂</div>
+
+<script>
+// ══════════════════════════════
+// STARFIELD CANVAS
+// ══════════════════════════════
+(()=>{
+  const cv=document.getElementById('cv'),cx=cv.getContext('2d');
+  let W,H,stars=[],nebs=[];
+  const resize=()=>{
+    W=cv.width=innerWidth;H=cv.height=innerHeight;
+    stars=Array.from({length:320},()=>({x:Math.random()*W,y:Math.random()*H,r:Math.random()*1.8+0.15,a:Math.random()*0.8+0.1,ph:Math.random()*Math.PI*2}));
+    nebs=Array.from({length:8},()=>({x:Math.random()*W,y:Math.random()*H,rx:90+Math.random()*260,ry:60+Math.random()*180,h:[255,200,320,175,290,340][Math.floor(Math.random()*6)],a:0.012+Math.random()*0.024}));
+  };
+  const frame=()=>{
+    cx.clearRect(0,0,W,H);
+    const g=cx.createRadialGradient(W/2,H/2,0,W/2,H/2,Math.max(W,H));
+    g.addColorStop(0,'rgba(10,5,28,1)');g.addColorStop(0.6,'rgba(4,2,16,1)');g.addColorStop(1,'rgba(2,1,8,1)');
+    cx.fillStyle=g;cx.fillRect(0,0,W,H);
+    nebs.forEach(n=>{
+      const ng=cx.createRadialGradient(n.x,n.y,0,n.x,n.y,n.rx);
+      ng.addColorStop(0,`hsla(${n.h},100%,58%,${n.a})`);ng.addColorStop(1,'transparent');
+      cx.save();cx.scale(1,n.ry/n.rx);cx.fillStyle=ng;cx.beginPath();cx.arc(n.x,n.y*(n.rx/n.ry),n.rx,0,Math.PI*2);cx.fill();cx.restore();
+    });
+    const t=performance.now()/1000;
+    stars.forEach(s=>{
+      const a=s.a*(0.5+0.5*Math.sin(s.ph+t*0.65));
+      cx.beginPath();cx.arc(s.x,s.y,s.r,0,Math.PI*2);cx.fillStyle=`rgba(215,235,255,${a})`;cx.fill();
+      if(s.r>1.35){cx.strokeStyle=`rgba(215,235,255,${a*0.3})`;cx.lineWidth=0.4;cx.beginPath();cx.moveTo(s.x-s.r*3.5,s.y);cx.lineTo(s.x+s.r*3.5,s.y);cx.moveTo(s.x,s.y-s.r*3.5);cx.lineTo(s.x,s.y+s.r*3.5);cx.stroke();}
+    });
+    requestAnimationFrame(frame);
+  };
+  window.addEventListener('resize',resize);resize();frame();
+})();
+
+// ══════════════════════════════
+// CLOCK
+// ══════════════════════════════
+setInterval(()=>{
+  const n=new Date();
+  document.getElementById('nclock').textContent=[n.getHours(),n.getMinutes(),n.getSeconds()].map(x=>String(x).padStart(2,'0')).join(':');
+},1000);
+
+// ══════════════════════════════
+// NAV DROPDOWN
+// ══════════════════════════════
+function toggleNav(id){document.querySelectorAll('.ni').forEach(el=>el.id===id?el.classList.toggle('open'):el.classList.remove('open'));}
+document.addEventListener('click',e=>{if(!e.target.closest('.ni'))document.querySelectorAll('.ni').forEach(el=>el.classList.remove('open'));});
+
+// ══════════════════════════════
+// ROTATING PANEL
+// ══════════════════════════════
+const RP_INTERVAL = 12000; // 12s per panel
+let rpCurrent=0, rpTimer=null, rpAuto=true;
+const rpTabs=['rpt0','rpt1','rpt2','rpt3'];
+const rpPanes=['rp0','rp1','rp2','rp3'];
+
+function switchRP(idx, manual=true){
+  if(manual){rpAuto=false;clearTimeout(rpTimer);setTimeout(()=>{rpAuto=true;startRPAuto();},30000);}
+  document.querySelectorAll('.rp-tab').forEach((b,i)=>b.classList.toggle('act',i===idx));
+  document.querySelectorAll('.rp-pane').forEach((p,i)=>p.classList.toggle('act',i===idx));
+  rpCurrent=idx;
+  // animate progress bar
+  const bar=document.getElementById('rtbar');
+  bar.style.transition='none';bar.style.transform='scaleX(0)';
+  void bar.offsetWidth;
+  if(rpAuto){bar.style.transition=`transform ${RP_INTERVAL}ms linear`;bar.style.transform='scaleX(1)';}
+  // animate progs inside new pane
+  setTimeout(animateProgs,60);
+}
+
+function startRPAuto(){
+  clearTimeout(rpTimer);
+  const bar=document.getElementById('rtbar');
+  bar.style.transition='none';bar.style.transform='scaleX(0)';
+  void bar.offsetWidth;
+  bar.style.transition=`transform ${RP_INTERVAL}ms linear`;bar.style.transform='scaleX(1)';
+  rpTimer=setTimeout(()=>{
+    if(!rpAuto)return;
+    rpCurrent=(rpCurrent+1)%4;
+    switchRP(rpCurrent,false);
+    startRPAuto();
+  },RP_INTERVAL);
+}
+setTimeout(startRPAuto,1000);
+
+// ══════════════════════════════
+// PROGRESS BARS
+// ══════════════════════════════
+function animateProgs(){
+  document.querySelectorAll('.rp-pane.act .pi-fill').forEach(el=>{
+    if(!el.style.width||el.style.width==='0px'||el.style.width==='0%')el.style.width=el.dataset.w;
+  });
+}
+setTimeout(animateProgs,500);
+
+// ══════════════════════════════
+// MINI CHART
+// ══════════════════════════════
+const CD=[{l:'PY',v:100,c:'var(--green)'},{l:'JS',v:87,c:'var(--gold)'},{l:'C++',v:68,c:'var(--pink)'},
+  {l:'JV',v:73,c:'var(--purple)'},{l:'TS',v:60,c:'var(--cyan)'},{l:'Rust',v:44,c:'var(--orange)'}];
+const mc=document.getElementById('mch'),ml=document.getElementById('mchl');
+CD.forEach(d=>{
+  const b=document.createElement('div');b.className='mch-b';b.style.cssText=`height:${d.v*0.36}px;background:${d.c}`;mc.appendChild(b);
+  const lb=document.createElement('div');lb.className='mch-l';lb.textContent=d.l;ml.appendChild(lb);
+});
+
+// ══════════════════════════════
+// FACTS
+// ══════════════════════════════
+const FACTS=[
+  {t:'El primer <strong>bug</strong> real fue una polilla encontrada en el Harvard Mark II el 9 de septiembre de 1947 por Grace Hopper.'},
+  {t:'Python usa <strong>GIL (Global Interpreter Lock)</strong>: un mutex que permite solo un hilo a la vez en CPython, limitando el paralelismo real.'},
+  {t:'<strong>Linux</strong> tiene ~30 millones de líneas de código. El 98% de los supercomputadores del TOP500 corren alguna distribución Linux.'},
+  {t:'El algoritmo de <strong>PageRank</strong> de Google fue la tesis doctoral de Larry Page en Stanford. Su nombre es un juego de palabras (Page + Rank).'},
+  {t:'<strong>WebAssembly (WASM)</strong> permite correr C, Rust y C++ en el navegador a velocidad casi nativa. Ya corre dentro de Node.js y Deno.'},
+  {t:'El ataque <strong>Spectre/Meltdown</strong> (2018) afectó a casi toda la arquitectura x86 moderna, demostrando que la optimización de hardware puede crear vulnerabilidades.'},
+  {t:'<strong>COBOL</strong> (1959) procesa más de $3 billones en transacciones bancarias diarias. Sigue habiendo más código COBOL que código Python en el mundo financiero.'},
+  {t:'Una <strong>inyección SQL</strong> destruyó la base de datos de producción de GitLab en 2017, perdiendo 6 horas de datos de 5,000 proyectos en minuto de un accidente.'},
+  {t:'<strong>Git</strong> fue creado por Linus Torvalds en 2005 en solo dos semanas para gestionar el kernel de Linux después de que revocaran su licencia de BitKeeper.'},
+  {t:'El rover <strong>Perseverance</strong> de la NASA corre un sistema operativo basado en VxWorks en C/C++ con redundancia triple de hardware para tolerar fallos.'},
+];
+const TIPS=[
+  'Implementa cada estructura de datos (<strong>árbol AVL, tabla hash, grafo</strong>) desde cero al menos una vez. La comprensión real viene de construirlos, no de usarlos.',
+  'El <strong>debugging</strong> más eficiente es el científico: formula una hipótesis, diseña un experimento mínimo reproducible y descarta. El 80% de bugs se resuelven con este método.',
+  'Aprende a leer <strong>papers académicos</strong>: Abstract → Conclusión → Introducción → Experimentos → Método. Plataformas como ArXiv son gratuitas.',
+  'Domina <strong>Git internals</strong> (objetos blob, tree, commit, ref). Quienes entienden el plombing de Git nunca pierden trabajo ni temen un rebase.',
+  'La <strong>complejidad computacional</strong> (Big-O) es el idioma universal con el que los seniors evalúan tu solución antes de ver el código.',
+];
+let fIdx=0,tIdx=Math.floor(Math.random()*TIPS.length);
+function renderFact(){
+  document.getElementById('fact-body').innerHTML=FACTS[fIdx].t;
+  document.getElementById('fact-idx').textContent=`${fIdx+1}/${FACTS.length}`;
+  const dots=document.getElementById('fact-dots');dots.innerHTML='';
+  FACTS.forEach((_,i)=>{const d=document.createElement('div');d.className='fdot'+(i===fIdx?' act':'');dots.appendChild(d);});
+}
+function moveFact(dir){fIdx=(fIdx+dir+FACTS.length)%FACTS.length;renderFact();}
+renderFact();
+document.getElementById('tip-body').innerHTML=TIPS[tIdx];
+
+// ══════════════════════════════
+// NEWS (simulated)
+// ══════════════════════════════
+const NEWS=[
+  {tag:'IA',tc:'var(--green)',title:'LLaMA 4 supera GPT-4o en benchmarks de razonamiento matemático',meta:'2h ago · MIT Technology Review'},
+  {tag:'CYBER',tc:'var(--pink)',title:'Nuevo zero-day en OpenSSH afecta a millones de servidores Linux sin parchear',meta:'5h ago · The Hacker News'},
+  {tag:'DB',tc:'var(--gold)',title:'PostgreSQL 17 anuncia mejoras de 40% en rendimiento de escrituras concurrentes',meta:'1d ago · PostgreSQL Blog'},
+  {tag:'WEB',tc:'var(--cyan)',title:'Bun 2.0 llega con soporte completo de Node.js APIs y 3x más velocidad en HTTP',meta:'3d ago · InfoQ'},
+  {tag:'CLOUD',tc:'var(--purple)',title:'Kubernetes 1.32 introduce mejoras críticas al scheduler de recursos GPU para cargas IA',meta:'4d ago · CNCF Blog'},
+];
+const nb=document.getElementById('news-bd');
+NEWS.forEach(n=>{
+  nb.innerHTML+=`<div class="news-item"><div class="news-tag" style="color:${n.tc};border-color:${n.tc}">${n.tag}</div><div class="news-title">${n.title}</div><div class="news-meta">${n.meta}</div></div>`;
+});
+
+// ══════════════════════════════
+// LOFI WEB AUDIO
+// ══════════════════════════════
+let actx=null,mGain=null,playing=false,vizTmr=null,oscs=[],lfosA=[],noises=[];
+let tIdx2=0;
+const TRACKS=[
+  {name:'◈ deep_focus.lofi',bpm:72,root:220,ratios:[1,1.26,1.498,1.782,2.0]},
+  {name:'◈ neon_rain.ambient',bpm:65,root:196,ratios:[1,1.189,1.498,1.587,1.887]},
+  {name:'◈ cyber_dreams.wave',bpm:80,root:246.94,ratios:[1,1.122,1.498,1.681,2.0]},
+  {name:'◈ tokyo_3am.drift',bpm:68,root:185,ratios:[1,1.26,1.414,1.587,2.0]},
+];
+function initA(){
+  if(actx)return;
+  actx=new(window.AudioContext||window.webkitAudioContext)();
+  mGain=actx.createGain();
+  const comp=actx.createDynamicsCompressor();comp.knee.value=20;comp.ratio.value=8;
+  mGain.connect(comp);comp.connect(actx.destination);
+  mGain.gain.value=0.26;
+}
+function stopLofi(){
+  [...oscs,...lfosA,...noises].forEach(o=>{try{o.stop()}catch(e){}});
+  oscs=[];lfosA=[];noises=[];clearInterval(vizTmr);playing=false;
+  document.getElementById('mpplay').textContent='▶';document.getElementById('mpplay').classList.remove('on');
+  document.getElementById('mpinf').textContent='PAUSED';
+  document.querySelectorAll('.mp-bar').forEach(b=>b.style.height='2px');
+}
+function startLofi(){
+  if(!actx)initA();stopLofi();
+  const tr=TRACKS[tIdx2],now=actx.currentTime;
+  tr.ratios.forEach((r,i)=>{
+    const o=actx.createOscillator(),g=actx.createGain(),f=actx.createBiquadFilter();
+    const lfo=actx.createOscillator(),lg=actx.createGain();
+    o.type=['sine','triangle','sine','triangle','sine'][i];o.frequency.value=tr.root*r;
+    lfo.frequency.value=0.06+i*0.022;lfo.type='sine';lg.gain.value=tr.root*0.009;
+    lfo.connect(lg);lg.connect(o.frequency);
+    f.type='lowpass';f.frequency.value=750+i*160;f.Q.value=1.1;
+    g.gain.value=[0.15,0.1,0.07,0.055,0.038][i];
+    o.connect(f);f.connect(g);g.connect(mGain);o.start(now);lfo.start(now);
+    oscs.push(o);lfosA.push(lfo);
+  });
+  // noise pad
+  const bl=actx.sampleRate*2,buf=actx.createBuffer(1,bl,actx.sampleRate),bd=buf.getChannelData(0);
+  for(let i=0;i<bl;i++)bd[i]=(Math.random()*2-1)*0.012;
+  const ns=actx.createBufferSource();ns.buffer=buf;ns.loop=true;
+  const nf=actx.createBiquadFilter();nf.type='bandpass';nf.frequency.value=tr.root*0.85;nf.Q.value=2.8;
+  const ng=actx.createGain();ng.gain.value=0.07;ns.connect(nf);nf.connect(ng);ng.connect(mGain);ns.start(now);noises.push(ns);
+  // rhythm
+  let bc=0;
+  const beat=()=>{
+    if(!playing)return;
+    const b=actx.createBuffer(1,actx.sampleRate*0.07,actx.sampleRate),bd2=b.getChannelData(0);
+    for(let i=0;i<bd2.length;i++)bd2[i]=(Math.random()*2-1)*Math.exp(-i/550);
+    const s=actx.createBufferSource(),bg=actx.createGain();
+    bg.gain.value=bc%4===0?0.055:0.022;s.buffer=b;s.connect(bg);bg.connect(mGain);s.start();bc++;
+    setTimeout(beat,60000/tr.bpm);
+  };
+  setTimeout(beat,200);
+  playing=true;
+  document.getElementById('mpplay').textContent='⏸';document.getElementById('mpplay').classList.add('on');
+  document.getElementById('mpt').textContent=TRACKS[tIdx2].name;
+  document.getElementById('mpinf').textContent=`${tr.bpm} BPM • GENERATIVE`;
+  vizTmr=setInterval(()=>{
+    if(!playing)return;
+    document.querySelectorAll('.mp-bar').forEach(b=>{const h=2+Math.random()*26;b.style.height=h+'px';b.style.opacity=0.3+h/30;});
+  },88);
+}
+function toggleM(){if(playing)stopLofi();else startLofi();}
+function prevT(){tIdx2=(tIdx2-1+TRACKS.length)%TRACKS.length;if(playing){stopLofi();startLofi();}else document.getElementById('mpt').textContent=TRACKS[tIdx2].name;}
+function nextT(){tIdx2=(tIdx2+1)%TRACKS.length;if(playing){stopLofi();startLofi();}else document.getElementById('mpt').textContent=TRACKS[tIdx2].name;}
+function setVol(v){if(mGain)mGain.gain.value=v/265;}
+const vz=document.getElementById('mpv');for(let i=0;i<22;i++){const b=document.createElement('div');b.className='mp-bar';b.style.height='2px';vz.appendChild(b);}
+
+// ══════════════════════════════
+// NODE DATA — NIVEL UNIVERSITARIO
+// ══════════════════════════════
+const ND={
+  2:{icon:'🐍',title:'PYTHON',sub:'v3.12 // INTERPRETED // MULTI-PARADIGM // GIL',color:'#00ff85',
+    desc:'Lenguaje de alto nivel con semántica limpia y multi-paradigma (imperativo, OOP, funcional). Liderado por la PSF. CPython como referencia, PyPy como JIT alternativo. Ecosistema dominante en ciencia de datos, machine learning y automatización. La gestión de memoria usa reference counting + GC cíclico.',
+    stats:[{v:'#1',l:'TIOBE 2024'},{v:'PyPI 470K',l:'PAQUETES'},{v:'CPython',l:'VM REF'},{v:'GIL',l:'THREADING'}],
+    tags:['GIL Internals','__slots__ / __dict__','Descriptors','MRO (C3)','Metaclasses','AsyncIO Loop','Type Hints + mypy','Cython / cffi','Numba JIT','Generators / yield from'],
+    code:`# Metaclase + Descriptor + AsyncIO — nivel avanzado
+from typing import Any, Callable
+import asyncio, functools
+
+class Validado:
+    """Descriptor que valida tipo en asignación"""
+    def __set_name__(self, owner, name):
+        self.name = f"_{name}"
+    def __get__(self, obj, _): return None if obj is None else getattr(obj, self.name)
+    def __set__(self, obj, value):
+        if not isinstance(value, (int, float)):
+            raise TypeError(f"{self.name}: se esperaba número, got {type(value).__name__}")
+        setattr(obj, self.name, value)
+
+class ModelMeta(type):
+    """Metaclase que registra todas las subclases"""
+    _registry: dict[str, type] = {}
+    def __new__(mcs, name, bases, ns):
+        cls = super().__new__(mcs, name, bases, ns)
+        if bases: mcs._registry[name] = cls
+        return cls
+
+class Sensor(metaclass=ModelMeta):
+    valor = Validado()
+    def __init__(self, val: float): self.valor = val
+
+class TemperaturaSensor(Sensor):
+    umbral = Validado()
+    def __init__(self, val: float, umbral: float = 45.0):
+        super().__init__(val)
+        self.umbral = umbral
+
+def retry(max_attempts: int = 3):
+    def decorator(fn: Callable):
+        @functools.wraps(fn)
+        async def wrapper(*args, **kw):
+            for attempt in range(1, max_attempts + 1):
+                try: return await fn(*args, **kw)
+                except Exception as e:
+                    if attempt == max_attempts: raise
+                    await asyncio.sleep(2 ** attempt)
+        return wrapper
+    return decorator
+
+@retry(max_attempts=3)
+async def leer_sensor(sid: str) -> dict:
+    # Simula I/O async
+    await asyncio.sleep(0.01)
+    return {"id": sid, "temp": 38.5}
+
+async def main():
+    sensores = [leer_sensor(f"SEN-{i:03d}") for i in range(5)]
+    resultados = await asyncio.gather(*sensores)
+    for r in resultados: print(r)
+
+asyncio.run(main())`,
+    uses:['ML: PyTorch / TensorFlow / JAX','Pipelines de datos: Airflow + Spark','APIs de alto rendimiento: FastAPI + uvicorn','Bioinformática: BioPython, scanpy','Automatización empresarial y scripting DevOps']},
+
+  3:{icon:'⚡',title:'JAVASCRIPT',sub:'ES2024 // V8 ENGINE // EVENT LOOP // PROTOTYPE',color:'#ffbe00',
+    desc:'Lenguaje dinámico basado en prototipos, monohilo con Event Loop y Call Stack. Motor V8 compila JIT con optimizaciones especulativas (Turbofan). Soporta CJS y ESM. Con Node.js/Bun cubre servidor, CLI y scripts. WebAssembly permite integrar módulos de alto rendimiento.',
+    stats:[{v:'V8 JIT',l:'TURBOFAN'},{v:'ESM+CJS',l:'MÓDULOS'},{v:'Bun 2',l:'RUNTIME'},{v:'WASM',l:'INTEROP'}],
+    tags:['Event Loop / microtask','Prototype chain','Temporal API','WeakRef + FinalizationReg.','SharedArrayBuffer','Atomics','Import Maps','Top-Level Await','Iterator Protocol','Proxy/Reflect internals'],
+    code:`// SharedArrayBuffer + Atomics + Worker threads
+// --- main.js ---
+const { Worker, isMainThread, workerData, parentPort } = require('worker_threads');
+
+if (isMainThread) {
+  const SIZE = 1_000_000;
+  const sab = new SharedArrayBuffer(SIZE * 4); // buffer compartido
+  const arr = new Int32Array(sab);
+
+  // Spin up 4 workers para llenar el buffer concurrentemente
+  const workers = Array.from({ length: 4 }, (_, id) => {
+    const w = new Worker(__filename, { workerData: { sab, id, total: 4, SIZE } });
+    return new Promise(res => w.on('message', res));
+  });
+
+  Promise.all(workers).then(() => {
+    const sum = arr.reduce((a, b) => a + b, 0);
+    console.log(\`Suma total: \${sum.toLocaleString()}\`);
+  });
+
+} else {
+  const { sab, id, total, SIZE } = workerData;
+  const arr = new Int32Array(sab);
+  const chunk = Math.floor(SIZE / total);
+  const start = id * chunk;
+  const end = id === total - 1 ? SIZE : start + chunk;
+
+  for (let i = start; i < end; i++) {
+    // Atomics garantiza escrituras seguras sin race conditions
+    Atomics.store(arr, i, i + 1);
+  }
+  parentPort.postMessage('done');
+}`,
+    uses:['Full-stack: Next.js / Remix con SSR/RSC','APIs de tiempo real con WebSockets / SSE','CLIs profesionales: Bun + Commander.js','Extensiones VS Code y aplicaciones Electron','Edge Computing: Cloudflare Workers / Vercel Edge']},
+
+  4:{icon:'⚙️',title:'C++',sub:'C++23 // COMPILED // ZERO OVERHEAD // ISO',color:'#ff1f6e',
+    desc:'Superconjunto de C diseñado por Bjarne Stroustrup. Compila a código máquina nativo sin runtime. Sistema de tipos estático con zero-cost abstractions. Templates permiten metaprogramación en tiempo de compilación. C++20/23 introduce módulos, concepts, coroutines y ranges para expresividad moderna.',
+    stats:[{v:'ISO C++23',l:'ESTÁNDAR'},{v:'<1ns',l:'LATENCIA'},{v:'LLVM/GCC',l:'COMPILERS'},{v:'0',l:'RT OVERHEAD'}],
+    tags:['RAII / Rule of 5','Smart Ptrs (unique/shared)','Move Semantics','Concepts (C++20)','Coroutines','Ranges v3','Modules (C++20)','consteval / constinit','std::expected (C++23)','Template Metaprog.'],
+    code:`// C++23: Coroutines + Concepts + std::expected + Ranges
+#include <coroutine>
+#include <generator> // C++23
+#include <expected>
+#include <ranges>
+#include <print>     // C++23
+
+template <std::floating_point T>
+concept Positivo = requires(T v) { { v > T{0} } -> std::same_as<bool>; };
+
+// Generator de primos via criba (Coroutine C++23)
+template <Positivo T>
+std::generator<T> primos_hasta(T limite) {
+    std::vector<bool> sieve(static_cast<size_t>(limite) + 1, true);
+    sieve[0] = sieve[1] = false;
+    for (size_t i = 2; i * i <= static_cast<size_t>(limite); ++i)
+        if (sieve[i])
+            for (size_t j = i*i; j <= static_cast<size_t>(limite); j += i)
+                sieve[j] = false;
+    for (T n = 2; n <= limite; ++n)
+        if (sieve[static_cast<size_t>(n)]) co_yield n;
+}
+
+// std::expected para error handling sin excepciones
+auto parse_limite(std::string_view arg)
+    -> std::expected<double, std::string> {
+    try { return std::stod(std::string(arg)); }
+    catch (...) { return std::unexpected(std::format("'{}' no es número", arg)); }
+}
+
+int main() {
+    auto resultado = parse_limite("100");
+    if (!resultado) { std::println("Error: {}", resultado.error()); return 1; }
+
+    // Ranges + coroutine generator — lazy, cero copias
+    auto primeros_10 = primos_hasta(*resultado)
+                     | std::views::take(10);
+
+    std::print("10 primeros primos: ");
+    for (auto p : primeros_10) std::print("{} ", p);
+    std::println("");
+}`,
+    uses:['Motores 3D: Unreal Engine 5, CryEngine','HFT: latencias de sub-microsegundo','Compiladores: LLVM, GCC, Clang internals','Robótica: ROS2 nodos críticos','GPGPU: CUDA C++ para IA de alto rendimiento']},
+
+  5:{icon:'☕',title:'JAVA',sub:'JDK 21 LTS // JVM // PROJECT LOOM // GraalVM',color:'#b200ff',
+    desc:'Lenguaje tipado estático compilado a bytecode JVM independiente de plataforma. JIT Hotspot/GraalVM optimiza en runtime. JDK 21 (LTS) introduce Virtual Threads (Project Loom) que desacoplan threads de OS threads, permitiendo millones de hilos concurrentes. Records y Sealed + Pattern Matching reducen boilerplate.',
+    stats:[{v:'JDK 21 LTS',l:'VERSIÓN'},{v:'GraalVM',l:'AOT / JIT'},{v:'Loom',l:'V-THREADS'},{v:'3B+',l:'DEVICES'}],
+    tags:['Virtual Threads','Structured Concurrency','Records + Compact Ctors','Sealed + Pattern Match','SequencedCollection','String Templates','Scoped Values','Foreign Function API','GraalVM native-image','JVM bytecode / ASM'],
+    code:`import java.util.concurrent.*;
+import java.util.concurrent.StructuredTaskScope.*;
+import java.util.stream.*;
+import java.time.Instant;
+
+// Java 21: Virtual Threads + Structured Concurrency + Sealed
+sealed interface ApiResult<T> permits Success, Failure {}
+record Success<T>(T data, Instant ts) implements ApiResult<T> {}
+record Failure<T>(String error, int code) implements ApiResult<T> {}
+
+public class StructuredDemo {
+
+    // Simula llamada a microservicio externo
+    static ApiResult<String> fetchService(String svc) throws InterruptedException {
+        Thread.sleep(50 + (long)(Math.random() * 100)); // I/O simulado
+        if (Math.random() < 0.15) return new Failure<>(svc + " timeout", 504);
+        return new Success<>(svc.toUpperCase() + "_OK", Instant.now());
+    }
+
+    public static void main(String[] args) throws Exception {
+        var servicios = List.of("auth", "inventory", "pricing", "shipping", "analytics");
+
+        // Structured Concurrency: si uno falla, cancela los demás
+        try (var scope = new StructuredTaskScope.ShutdownOnFailure()) {
+
+            var tareas = servicios.stream()
+                .map(svc -> scope.fork(() -> fetchService(svc)))
+                .toList();
+
+            scope.join().throwIfFailed(); // bloquea hasta que todos terminen
+
+            tareas.stream()
+                .map(StructuredTaskScope.Subtask::get)
+                .forEach(r -> System.out.println(switch (r) {
+                    case Success<?> s  -> "✓ [" + s.ts().toEpochMilli() % 10000 + "] " + s.data();
+                    case Failure<?> f  -> "✗ HTTP " + f.code() + " — " + f.error();
+                }));
+        }
+    }
+}`,
+    uses:['Microservicios: Spring Boot 3 + GraalVM native','Android & Kotlin JVM interop','Big Data: Apache Kafka Streams, Flink','APIs bancarias y sistemas de pago críticos','Plataformas cloud-native en Kubernetes']},
+};
+
+// ══════════════════════════════
+// VIS NETWORK — SPACE GRAPH
+// ══════════════════════════════
+const PS={
+  1:{label:'MUNDO\nDIGITAL',shape:'diamond',size:68,bg:'#0b001f',bdr:'#b200ff',fnt:'#b200ff',shd:'rgba(178,0,255,0.78)'},
+  2:{label:'PYTHON',shape:'dot',size:42,bg:'#001a0d',bdr:'#00ff85',fnt:'#00ff85',shd:'rgba(0,255,133,0.68)'},
+  3:{label:'JAVASCRIPT',shape:'dot',size:42,bg:'#1a1200',bdr:'#ffbe00',fnt:'#ffbe00',shd:'rgba(255,190,0,0.68)'},
+  4:{label:'C++',shape:'dot',size:42,bg:'#1a000a',bdr:'#ff1f6e',fnt:'#ff1f6e',shd:'rgba(255,31,110,0.68)'},
+  5:{label:'JAVA',shape:'dot',size:42,bg:'#0e001e',bdr:'#b200ff',fnt:'#b200ff',shd:'rgba(178,0,255,0.68)'},
+};
+const nodesDs=new vis.DataSet(Object.entries(PS).map(([id,s])=>({
+  id:+id,label:s.label,shape:s.shape,size:s.size,
+  color:{background:s.bg,border:s.bdr,highlight:{background:s.bg,border:s.bdr},hover:{background:s.bg,border:s.bdr}},
+  font:{color:s.fnt,size:11,face:'Share Tech Mono',bold:+id===1,strokeWidth:4,strokeColor:'rgba(0,0,0,0.92)'},
+  borderWidth:+id===1?3:2,borderWidthSelected:4,
+  shadow:{enabled:true,color:s.shd,size:40,x:0,y:0},
+})));
+const edgesDs=new vis.DataSet([
+  {from:1,to:2,color:{color:'rgba(0,255,133,0.2)',highlight:'rgba(0,255,133,0.9)'},width:1.5,dashes:[9,5],smooth:{type:'dynamic'}},
+  {from:1,to:3,color:{color:'rgba(255,190,0,0.2)',highlight:'rgba(255,190,0,0.9)'},width:1.5,dashes:[9,5],smooth:{type:'dynamic'}},
+  {from:1,to:4,color:{color:'rgba(255,31,110,0.2)',highlight:'rgba(255,31,110,0.9)'},width:1.5,dashes:[9,5],smooth:{type:'dynamic'}},
+  {from:1,to:5,color:{color:'rgba(178,0,255,0.2)',highlight:'rgba(178,0,255,0.9)'},width:1.5,dashes:[9,5],smooth:{type:'dynamic'}},
+]);
+const network=new vis.Network(document.getElementById('mynetwork'),{nodes:nodesDs,edges:edgesDs},{
+  physics:{enabled:true,solver:'forceAtlas2Based',
+    forceAtlas2Based:{gravitationalConstant:-100,centralGravity:0.003,springLength:240,springConstant:0.030,damping:0.42,avoidOverlap:0.92},
+    stabilization:{iterations:280,fit:true}},
+  interaction:{hover:true,tooltipDelay:120,zoomView:true,dragView:true},
+  nodes:{chosen:{node:(v)=>{v.shadowSize=60;}}},
+});
+network.on('hoverNode',()=>document.getElementById('mynetwork').style.cursor='pointer');
+network.on('blurNode',()=>document.getElementById('mynetwork').style.cursor='default');
+network.on('click',p=>{
+  if(!p.nodes.length){closeM();return;}
+  const id=+p.nodes[0];
+  if(id===1||!ND[id]){closeM();return;}
+  openM(id);
+});
+
+// ══════════════════════════════
+// MODAL
+// ══════════════════════════════
+function openM(id){
+  const d=ND[id],c=d.color;
+  document.getElementById('m-ic').textContent=d.icon;
+  document.getElementById('m-tt').textContent=d.title;
+  document.getElementById('m-tt').style.cssText=`color:${c};text-shadow:0 0 20px ${c}99`;
+  document.getElementById('m-sb').textContent=d.sub;
+  document.getElementById('m-desc').textContent=d.desc;
+  document.getElementById('m-stats').innerHTML=d.stats.map(s=>`<div class="sbox"><span class="v" style="color:${c}">${s.v}</span><span class="l">${s.l}</span></div>`).join('');
+  document.getElementById('m-tags').innerHTML=d.tags.map(t=>`<div class="tag" style="border-color:${c}55;color:${c}">${t}</div>`).join('');
+  document.getElementById('m-code').textContent=d.code;
+  document.getElementById('m-cb').style.borderLeftColor=c;
+  document.getElementById('m-clng').style.color=c;document.getElementById('m-clng').textContent=d.title;
+  document.getElementById('m-uses').innerHTML=d.uses.map(u=>`<div class="ur">${u}</div>`).join('');
+  document.getElementById('mo').style.display='block';
+  const mi=document.getElementById('mi');mi.style.display='block';
+  mi.style.animation='none';void mi.offsetWidth;mi.style.animation='moin .32s cubic-bezier(.16,1,.3,1)';
+  mi.scrollTop=0;
+}
+function closeM(){
+  document.getElementById('mi').style.display='none';
+  document.getElementById('mo').style.display='none';
+  network.unselectAll();
+}
+function focusNode(id){
+  network.selectNodes([id]);network.focus(id,{scale:1.18,animation:{duration:700,easingFunction:'easeInOutQuad'}});
+  openM(id);document.querySelectorAll('.ni').forEach(el=>el.classList.remove('open'));
+}
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeM();});
+</script>
+</body>
+</html>
+
