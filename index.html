@@ -5,28 +5,54 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>NEURO-CORE | Red Digital</title>
     
-    <!-- Librería de Grafos -->
-    <script type="text/javascript" src="https://unpkg.com"></script>
-    <link href="https://fonts.googleapis.com" rel="stylesheet">
+    <!-- Librería de Grafos (CDJS estable) -->
+    <script src="https://cdnjs.cloudflare.com"></script>
     
     <style>
         :root { --bg-color: #020205; --neon-cyan: #00f3ff; --neon-purple: #bc00ff; }
-        body, html { margin: 0; padding: 0; width: 100%; height: 100%; background: var(--bg-color); color: var(--neon-cyan); font-family: 'Space Mono', monospace; overflow: hidden; }
-        #header { position: absolute; top: 20px; left: 20px; z-index: 10; border-left: 3px solid var(--neon-purple); padding-left: 10px; }
-        #mynetwork { width: 100vw; height: 100vh; outline: none; }
+        
+        body, html { 
+            margin: 0; padding: 0; width: 100%; height: 100%; 
+            background-color: var(--bg-color) !important; 
+            color: var(--neon-cyan); 
+            font-family: sans-serif; 
+            overflow: hidden; 
+        }
+
+        #header { 
+            position: absolute; top: 20px; left: 20px; z-index: 10; 
+            border-left: 3px solid var(--neon-purple); padding-left: 10px; 
+        }
+
+        #mynetwork { 
+            width: 100vw; height: 100vh; 
+            background-color: var(--bg-color);
+        }
+
         #info-panel { 
             position: absolute; right: 20px; top: 20px; width: 280px; 
             background: rgba(5, 5, 15, 0.95); border: 1px solid var(--neon-cyan); 
-            padding: 15px; display: none; z-index: 100; box-shadow: 0 0 15px rgba(0,243,255,0.3);
+            padding: 15px; display: none; z-index: 100;
         }
-        .code-box { background: #000; color: #0f0; padding: 10px; font-size: 0.8rem; border: 1px dashed var(--neon-purple); margin-top: 10px; white-space: pre-wrap; }
+
+        .code-box { background: #000; color: #0f0; padding: 10px; font-size: 0.8rem; border: 1px dashed var(--neon-purple); margin-top: 10px; }
+        
+        /* Línea de escaneo */
+        .scanner {
+            position: absolute; width: 100%; height: 2px;
+            background: var(--neon-cyan); box-shadow: 0 0 15px var(--neon-cyan);
+            animation: scan 4s linear infinite; pointer-events: none; z-index: 5;
+        }
+        @keyframes scan { 0% { top: 0%; } 100% { top: 100%; } }
     </style>
 </head>
 <body>
 
+    <div class="scanner"></div>
+
     <div id="header">
-        <h1>NEURO-NET_SYS</h1>
-        <small>HAZ CLIC EN UN NODO PARA EXPLORAR</small>
+        <h1 style="margin:0; font-size:1.5rem;">NEURO-NET_SYS</h1>
+        <small style="color:#888;">STATUS: ONLINE | CLIC PARA EXPLORAR</small>
     </div>
 
     <div id="mynetwork"></div>
@@ -35,11 +61,10 @@
         <h3 id="node-title" style="margin:0; color:var(--neon-purple);"></h3>
         <p id="node-desc" style="font-size:0.85rem; color:#fff;"></p>
         <div class="code-box" id="node-code"></div>
-        <button onclick="document.getElementById('info-panel').style.display='none'" style="margin-top:10px; width:100%; cursor:pointer; background:#111; color:#eee; border:1px solid #444;">CERRAR</button>
+        <button onclick="document.getElementById('info-panel').style.display='none'" style="margin-top:10px; width:100%; cursor:pointer;">CERRAR</button>
     </div>
 
     <script type="text/javascript">
-        // 1. Base de datos
         const nodeInfo = {
             2: { t: 'PYTHON', d: 'Líder en IA y análisis de datos.', c: 'print("Hello Neuro")' },
             3: { t: 'JAVASCRIPT', d: 'El motor de la web interactiva.', c: 'console.log("Ready");' },
@@ -47,42 +72,43 @@
             5: { t: 'JAVA', d: 'Estándar en apps empresariales.', c: 'System.out.print("Java");' }
         };
 
-        // 2. Nodos y Conexiones
         var nodes = new vis.DataSet([
-            { id: 1, label: 'MUNDO\nDIGITAL', shape: 'diamond', size: 40, color: '#000', font: {color:'#fff', size:20} },
-            { id: 2, label: 'PYTHON', shape: 'dot', size: 25 },
-            { id: 3, label: 'JAVASCRIPT', shape: 'dot', size: 25 },
-            { id: 4, label: 'C++', shape: 'dot', size: 25 },
-            { id: 5, label: 'JAVA', shape: 'dot', size: 25 }
+            { id: 1, label: 'MUNDO\nDIGITAL', shape: 'diamond', size: 40, color: {background:'#000', border:'#bc00ff'}, font:{color:'#fff'} },
+            { id: 2, label: 'PYTHON', shape: 'dot', size: 20 },
+            { id: 3, label: 'JAVASCRIPT', shape: 'dot', size: 20 },
+            { id: 4, label: 'C++', shape: 'dot', size: 20 },
+            { id: 5, label: 'JAVA', shape: 'dot', size: 20 }
         ]);
 
         var edges = new vis.DataSet([
             { from: 1, to: 2 }, { from: 1, to: 3 }, { from: 1, to: 4 }, { from: 1, to: 5 }
         ]);
 
-        // 3. Inicialización
         var container = document.getElementById('mynetwork');
-        var network = new vis.Network(container, { nodes, edges }, {
+        var data = { nodes: nodes, edges: edges };
+        var options = {
             nodes: { color: { border: '#00f3ff', background: '#020205' }, font: { color: '#00f3ff' } },
-            physics: { enabled: true, solver: 'forceAtlas2Based' }
-        });
+            edges: { color: '#444' },
+            physics: { forceAtlas2Based: { gravitationalConstant: -100 }, solver: 'forceAtlas2Based' }
+        };
 
-        // 4. Lógica de Clic Corregida
+        var network = new vis.Network(container, data, options);
+
         network.on("click", function (params) {
-            const panel = document.getElementById('info-panel');
             if (params.nodes.length > 0) {
-                const id = params.nodes[0]; // Captura el ID correctamente
-                const data = nodeInfo[id];
-                if (data) {
-                    panel.style.display = 'block';
-                    document.getElementById('node-title').innerText = data.t;
-                    document.getElementById('node-desc').innerText = data.d;
-                    document.getElementById('node-code').innerText = data.c;
+                const id = params.nodes[0];
+                const info = nodeInfo[id];
+                if (info) {
+                    document.getElementById('info-panel').style.display = 'block';
+                    document.getElementById('node-title').innerText = info.t;
+                    document.getElementById('node-desc').innerText = info.d;
+                    document.getElementById('node-code').innerText = info.c;
                 }
             } else {
-                panel.style.display = 'none';
+                document.getElementById('info-panel').style.display = 'none';
             }
         });
     </script>
 </body>
 </html>
+
