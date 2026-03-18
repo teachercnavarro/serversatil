@@ -3,139 +3,86 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NEURO-CORE | Red de Aprendizaje</title>
+    <title>NEURO-CORE | Red Digital</title>
     
-    <!-- Librería de Grafos Corregida -->
+    <!-- Librería de Grafos -->
     <script type="text/javascript" src="https://unpkg.com"></script>
     <link href="https://fonts.googleapis.com" rel="stylesheet">
     
     <style>
-        :root {
-            --bg-color: #020205;
-            --neon-cyan: #00f3ff;
-            --neon-purple: #bc00ff;
-            --text-gray: #888;
-        }
-
-        body, html {
-            margin: 0; padding: 0; width: 100%; height: 100%;
-            background-color: var(--bg-color);
-            color: var(--neon-cyan);
-            font-family: 'Space Mono', monospace;
-            overflow: hidden;
-        }
-
-        /* Cuadrícula Cyberpunk */
-        body::before {
-            content: ""; position: absolute; width: 100%; height: 100%;
-            background-image: 
-                linear-gradient(rgba(0, 243, 255, 0.03) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(0, 243, 255, 0.03) 1px, transparent 1px);
-            background-size: 40px 40px; pointer-events: none;
-        }
-
-        #header {
-            position: absolute; top: 25px; left: 25px; z-index: 10;
-            border-left: 3px solid var(--neon-purple); padding-left: 15px;
-        }
-
-        h1 { margin: 0; font-size: 1.5rem; letter-spacing: 3px; text-shadow: 0 0 15px var(--neon-cyan); }
-
+        :root { --bg-color: #020205; --neon-cyan: #00f3ff; --neon-purple: #bc00ff; }
+        body, html { margin: 0; padding: 0; width: 100%; height: 100%; background: var(--bg-color); color: var(--neon-cyan); font-family: 'Space Mono', monospace; overflow: hidden; }
+        #header { position: absolute; top: 20px; left: 20px; z-index: 10; border-left: 3px solid var(--neon-purple); padding-left: 10px; }
         #mynetwork { width: 100vw; height: 100vh; outline: none; }
-
-        #info-panel {
-            position: absolute; right: 20px; bottom: 20px; width: 300px;
-            background: rgba(5, 5, 10, 0.9); border: 1px solid var(--neon-cyan);
-            padding: 20px; display: none; backdrop-filter: blur(10px);
-            box-shadow: 0 0 20px rgba(0, 243, 255, 0.2);
-            z-index: 100;
+        #info-panel { 
+            position: absolute; right: 20px; top: 20px; width: 280px; 
+            background: rgba(5, 5, 15, 0.95); border: 1px solid var(--neon-cyan); 
+            padding: 15px; display: none; z-index: 100; box-shadow: 0 0 15px rgba(0,243,255,0.3);
         }
-
-        .code-box {
-            background: #000; color: #0f0; padding: 10px;
-            font-size: 0.8rem; border: 1px dashed var(--neon-purple);
-            margin-top: 10px; white-space: pre-wrap; font-family: monospace;
-        }
-
-        .scanner {
-            position: absolute; width: 100%; height: 2px;
-            background: rgba(0, 243, 255, 0.5); box-shadow: 0 0 15px var(--neon-cyan);
-            animation: scan 4s linear infinite; pointer-events: none;
-        }
-
-        @keyframes scan { 0% { top: 0%; } 100% { top: 100%; } }
+        .code-box { background: #000; color: #0f0; padding: 10px; font-size: 0.8rem; border: 1px dashed var(--neon-purple); margin-top: 10px; white-space: pre-wrap; }
     </style>
 </head>
 <body>
 
-    <div class="scanner"></div>
-    
     <div id="header">
         <h1>NEURO-NET_SYS</h1>
-        <div style="font-size: 0.7rem; color: var(--text-gray);">STATUS: ONLINE | DOMAIN: .COM</div>
+        <small>HAZ CLIC EN UN NODO PARA EXPLORAR</small>
     </div>
 
     <div id="mynetwork"></div>
 
     <div id="info-panel">
-        <h3 id="node-title" style="color: var(--neon-purple); margin: 0 0 10px 0;"></h3>
-        <p id="node-desc" style="font-size: 0.8rem; color: #fff;"></p>
+        <h3 id="node-title" style="margin:0; color:var(--neon-purple);"></h3>
+        <p id="node-desc" style="font-size:0.85rem; color:#fff;"></p>
         <div class="code-box" id="node-code"></div>
-        <button onclick="document.getElementById('info-panel').style.display='none'" style="background:none; border:1px solid #444; color:#444; cursor:pointer; margin-top:10px; width:100%;">CERRAR</button>
+        <button onclick="document.getElementById('info-panel').style.display='none'" style="margin-top:10px; width:100%; cursor:pointer; background:#111; color:#eee; border:1px solid #444;">CERRAR</button>
     </div>
 
-        <script type="text/javascript">
-    // 1. Datos de los Nodos
-    var nodes = new vis.DataSet([
-        { id: 1, label: 'MUNDO\nDIGITAL', shape: 'diamond', size: 45, color: {background: '#000', border: '#bc00ff'}, font: {color: '#fff', size: 22} },
-        { id: 2, label: 'PYTHON', group: 'lang' },
-        { id: 3, label: 'JAVASCRIPT', group: 'lang' },
-        { id: 4, label: 'C++', group: 'lang' },
-        { id: 5, label: 'JAVA', group: 'lang' }
-    ]);
+    <script type="text/javascript">
+        // 1. Base de datos
+        const nodeInfo = {
+            2: { t: 'PYTHON', d: 'Líder en IA y análisis de datos.', c: 'print("Hello Neuro")' },
+            3: { t: 'JAVASCRIPT', d: 'El motor de la web interactiva.', c: 'console.log("Ready");' },
+            4: { t: 'C++', d: 'Control total y alto rendimiento.', c: 'std::cout << "Fast";' },
+            5: { t: 'JAVA', d: 'Estándar en apps empresariales.', c: 'System.out.print("Java");' }
+        };
 
-    var edges = new vis.DataSet([
-        { from: 1, to: 2 }, { from: 1, to: 3 }, { from: 1, to: 4 }, { from: 1, to: 5 }
-    ]);
+        // 2. Nodos y Conexiones
+        var nodes = new vis.DataSet([
+            { id: 1, label: 'MUNDO\nDIGITAL', shape: 'diamond', size: 40, color: '#000', font: {color:'#fff', size:20} },
+            { id: 2, label: 'PYTHON', shape: 'dot', size: 25 },
+            { id: 3, label: 'JAVASCRIPT', shape: 'dot', size: 25 },
+            { id: 4, label: 'C++', shape: 'dot', size: 25 },
+            { id: 5, label: 'JAVA', shape: 'dot', size: 25 }
+        ]);
 
-    var container = document.getElementById('mynetwork');
-    var data = { nodes: nodes, edges: edges };
-    var options = {
-        groups: {
-            lang: { shape: 'dot', size: 30, color: {background: '#020205', border: '#00f3ff'}, font: {size: 20} }
-        },
-        physics: { stabilization: true }
-    };
+        var edges = new vis.DataSet([
+            { from: 1, to: 2 }, { from: 1, to: 3 }, { from: 1, to: 4 }, { from: 1, to: 5 }
+        ]);
 
-    var network = new vis.Network(container, data, options);
+        // 3. Inicialización
+        var container = document.getElementById('mynetwork');
+        var network = new vis.Network(container, { nodes, edges }, {
+            nodes: { color: { border: '#00f3ff', background: '#020205' }, font: { color: '#00f3ff' } },
+            physics: { enabled: true, solver: 'forceAtlas2Based' }
+        });
 
-    // 2. LA BASE DE DATOS (Lo que quieres que se vea)
-    const nodeInfo = {
-        2: { t: 'PYTHON', d: 'Lenguaje líder en Inteligencia Artificial.', c: 'def hello():\n  print("Hola Mundo")' },
-        3: { t: 'JAVASCRIPT', d: 'El motor de la web moderna.', c: 'console.log("Hello Web");' },
-        4: { t: 'C++', d: 'Rendimiento puro y control de hardware.', c: 'std::cout << "Fast Code";' },
-        5: { t: 'JAVA', d: 'Estándar para aplicaciones empresariales.', c: 'System.out.println("Java Core");' }
-    };
-
-    // 3. LA FUNCIÓN QUE "LLAMA" A LA INFORMACIÓN
-    network.on("click", function (params) {
-        if (params.nodes.length > 0) {
-            const id = params.nodes[0]; // Obtenemos el ID del nodo clickeado
-            const info = nodeInfo[id];
+        // 4. Lógica de Clic Corregida
+        network.on("click", function (params) {
             const panel = document.getElementById('info-panel');
-
-            if (info) {
-                panel.style.display = 'block'; // Mostramos el panel
-                document.getElementById('node-title').innerText = info.t;
-                document.getElementById('node-desc').innerText = info.d;
-                document.getElementById('node-code').innerText = info.c;
+            if (params.nodes.length > 0) {
+                const id = params.nodes[0]; // Captura el ID correctamente
+                const data = nodeInfo[id];
+                if (data) {
+                    panel.style.display = 'block';
+                    document.getElementById('node-title').innerText = data.t;
+                    document.getElementById('node-desc').innerText = data.d;
+                    document.getElementById('node-code').innerText = data.c;
+                }
+            } else {
+                panel.style.display = 'none';
             }
-        } else {
-            document.getElementById('info-panel').style.display = 'none'; // Escondemos si clica afuera
-        }
-    });
-</script>
-
+        });
+    </script>
 </body>
 </html>
-
